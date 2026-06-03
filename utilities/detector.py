@@ -1,17 +1,17 @@
 import re
 import hashlib 
 import pandas as pd
+import logging
 
 from pathlib import Path
 
-try:
-    from .constants import EXPECTED_COLUMNS
-except ImportError:
-    from constants import EXPECTED_COLUMNS
+from .constants import EXPECTED_COLUMNS
+
+logger = logging.getLogger("data_pipeline.detector")
 
 def detect_file_type(path: str | Path) -> str:
     suffix = Path(path).suffix.lower()
-    print(suffix)
+    logger.info(f"Detecting file type for: {path}")
     if suffix not in ['.csv', '.xlsx']:
         raise ValueError(f"Unsupported file type: {suffix}. Only .csv and .xlsx are supported.")
 
@@ -35,30 +35,24 @@ def print_file_content(path: str | Path) -> None:
     print(df.head())
 
 ## Detecting headers
+
+# Return the fraction of non-null cells in *row* that appear in *expected*.
+# Cells are lowercased and stripped before comparison.
 def _score_row_as_header(row: pd.Series, expected: list[str]) -> float:
-    """
-    Return the fraction of non-null cells in *row* that appear in *expected*.
-    Cells are lowercased and stripped before comparison.
-    """
     cells = [
         str(v).strip().lower()
         for v in row
         if pd.notna(v) and str(v).strip() != ""
     ]
+    print(f"Scoring row: {cells} against expected: {expected}")
     if not cells:
         return 0.0
     matched = sum(1 for c in cells if c in expected)
+    print(f"Matched: {matched}")
     return matched / len(cells)
  
- 
+# Sanity check to avoid picking a decorative title row that happens to contain column-name-like words.
 def _next_row_looks_like_data(df_raw: pd.DataFrame, row_idx: int) -> bool:
-    """
-    Return True if the row immediately below *row_idx* contains at least one
-    value that looks like a number or a date string.
- 
-    Secondary signal used to avoid selecting a decorative title row that
-    happens to contain column-name-like words.
-    """
     next_idx = row_idx + 1
     if next_idx >= len(df_raw):
         return False
@@ -72,11 +66,88 @@ def _next_row_looks_like_data(df_raw: pd.DataFrame, row_idx: int) -> bool:
             return True
         except ValueError:
             pass
+        # check for date like patterns 
         if re.search(r"\d{1,4}[\/\-\s]\d{1,2}", s):
             return True
     return False
 
+
+# Public API 
+
+def detect_header_row(path: str | Path, threshold: float = 0.5, 
+                      max_scan_rows: int = 30) -> tuple[int, str]:
+    if Path(path).suffix.lower() == '.xlsx':
+        df_raw = pd.read_excel(path, header=None, nrows=max_scan_rows)
+    else:
+        df_raw = pd.read_csv(path, header=None, nrows=max_scan_rows)
+    best_score = 0.0
+    best_row_idx = -1
+    best_file_type = None
+
+    for row_idx in range(len(df_raw)):
+        row = df_raw.iloc[row_idx]
+        for file_type, expected_cols in EXPECTED_COLUMNS.items():
+            score = _score_row_as_header(row, expected_cols)
+            print(f"Row{row_idx} vs {file_type}: {score}")
+            if score > best_score:
+                best_score = score
+                best_row_idx = row_idx
+                best_file_type = file_type
+        if best_score >= threshold and _next_row_looks_like_data(df_raw, best_row_idx):
+            logger.info(
+                "Header detected",
+                extra={
+                    "stage": "structure_detection",
+                    "row_index": best_row_idx,
+                    "file_type": best_file_type,
+                    "match_score": round(best_score, 2),
+                },
+            )
+            return best_row_idx, best_file_type
+    if best_score < threshold:
+        logger.warning(
+        "Header score below threshold — falling back to row 0. "
+        "Upload flagged for manual review.",
+        extra={
+            "stage": "structure_detection",
+            "best_score": round(best_score, 2),
+            "threshold": threshold,
+            },
+        )
+        best_file_type = best_file_type or list(EXPECTED_COLUMNS.keys())[0]
+        return 0, best_file_type
+ 
+    logger.info(
+        "Header detected (threshold met, secondary check skipped)",
+        extra={
+            "stage": "structure_detection",
+            "row_index": best_row_idx,
+            "file_type": best_file_type,
+            "match_score": round(best_score, 2),
+        },
+    )
+    return best_row_idx, best_file_type
+
+def load_file(path:str | Path) -> tuple[pd.DataFrame, str]:
+    header_row, file_type = detect_header_row(path)
+
+    if Path(path).suffix.lower() == '.xlsx':
+        df = pd.read_excel(path, header=header_row)
+    else: 
+        df = pd.read_csv(path, header=header_row)
+    
+    # Clean the column names by stripping whitespace, replacing multiple spaces with a single space,
+    # and lowercasing
+    df.columns = [re.sub(r"\s+", " ", str(c).strip().lower()) for c in df.columns]
+
+    return df, file_type
+
 if __name__ == "__main__":
-    detect_file_type("../data/tutor_assignments_raw.xlsx")
-    print(generate_file_hash("../data/tutor_assignments_raw.xlsx"))
-    print_file_content("../data/tutor_assignments_raw.xlsx")
+    # Example usage
+    path1 = "data/tutor_assignments_raw.xlsx"
+    path2 = "data/invoice_export_q1.xlsx"
+    path3 = "data/lesson_logs_messy.xlsx"
+    df, file_type = load_file(path3)
+    print(f"Detected file type: {file_type}")
+    print(df.head())
+
