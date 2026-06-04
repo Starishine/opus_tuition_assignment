@@ -106,7 +106,7 @@ def _numeric_error(field: str, raw_value, row_number: int, raw_data: dict) -> di
 # Per-file-type validators
 
 # Clean and validate tutor_assignments_raw.xlsx rows.
-# Required: tutor name, student name, subject, hourly rate, start date, status
+# Required: assignment_id, tutor name, student name, subject, hourly rate, start date, status
 # Optional: level, contact email
 
 # Column resolution handles variants like:
@@ -127,6 +127,7 @@ def validate_tutor_assignments(df: pd.DataFrame) -> tuple[pd.DataFrame, list[dic
         row_num = i + 2  # +1 for 1-based, +1 for header row
         errors: list[dict] = []
 
+        assignment_id = clean_text(rget(raw, col_map, "assignment id"))
         tutor_name    = clean_text(rget(raw, col_map, "tutor name"))
         student_name  = clean_text(rget(raw, col_map, "student name"))
         subject       = clean_text(rget(raw, col_map, "subject"))
@@ -143,7 +144,8 @@ def validate_tutor_assignments(df: pd.DataFrame) -> tuple[pd.DataFrame, list[dic
         status     = normalise_status(raw_status, CANONICAL_STATUS["tutor_assignments"])
 
         # Required field checks - tutor, student, subject, hourly rate, start date, status
-        for field, val in [("tutor name", tutor_name), 
+        for field, val in [("assignment id", assignment_id),
+                           ("tutor name", tutor_name), 
                            ("student name", student_name), 
                            ("subject", subject),
                            ]:
@@ -166,6 +168,7 @@ def validate_tutor_assignments(df: pd.DataFrame) -> tuple[pd.DataFrame, list[dic
             quarantine.extend(errors)
         else:
             clean_rows.append({
+                "assignment_id": assignment_id,
                 "tutor_name": tutor_name,
                 "student_name": student_name,
                 "subject": subject,
@@ -179,13 +182,13 @@ def validate_tutor_assignments(df: pd.DataFrame) -> tuple[pd.DataFrame, list[dic
     return pd.DataFrame(clean_rows), quarantine
 
 # Clean and validate lesson_logs_messy.xlsx rows.
-# Required: assignment id, date, duration, attendance
-# Optional: lesson id, notes, fee
+# Required: lesson id, assignment id, date, duration, attendance
+# Optional: notes, fee
 
 # Edge cases:
 # - TBC / N/A in duration treated as missing (MISSING_REQUIRED_FIELD), not INVALID_NUMERIC
 # - "0" fee is a valid zero — excluded from MISSING_SENTINELS check
-# - lesson id optional because the file may have no header row
+
 def validate_lesson_logs(df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
     df = drop_blank_rows(df)
     df = drop_decorative_rows(df)

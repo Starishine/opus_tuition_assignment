@@ -16,7 +16,7 @@ from .constants import EXPECTED_COLUMNS
 
 logger = logging.getLogger("data_pipeline.detector")
 
-def detect_file_type(path: str | Path) -> str:
+def validate_file_type(path: str | Path) -> str:
     suffix = Path(path).suffix.lower()
     logger.info(f"Detecting file type for: {path}")
     if suffix not in ['.csv', '.xlsx']:
@@ -179,13 +179,4 @@ def load_file(path:str | Path) -> tuple[pd.DataFrame, str]:
 
     return df, file_type
 
-if __name__ == "__main__":
-    # Example usage
-    path1 = "data/tutor_assignments_raw.xlsx"
-    path2 = "data/invoice_export_q1.xlsx"
-    path3 = "data/lesson_logs_messy.xlsx"
-    df, file_type = load_file(path1)
-    print(f"Detected file type: {file_type}")
-    print(df.head())
-    print(df.columns)
 

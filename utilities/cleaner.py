@@ -17,14 +17,14 @@ logger = logging.getLogger("data_pipeline.cleaner")
 
 ## Cell value cleaning and parsing
 
-# Strip whitespace and convert empty strings / missing values to None
+# Strip whitespace and convert empty strings / missing values to None, format to lower case 
 def clean_text(value: str) -> Optional[str]:
     if pd.isna(value):
         return None
     value = str(value).strip()
     if value.lower() in MISSING_SENTINELS:
         return None
-    return value if value else None
+    return value.lower() if value else None
 
 # Parses a date string into a consistent ISO 8601 format (YYYY-MM-DD) or returns None if parsing fails.
 def parse_date(value: str) -> Optional[str]:
@@ -58,6 +58,12 @@ def parse_numeric(value: str) -> Optional[float]:
                        extra={"stage": "cleaning", "raw_value": value},)
         return None
     
+def normalise_status(value, canonical: list[str]) -> Optional[str]:
+    value = clean_text(value)
+    if value is None:
+        return None
+    cleaned = str(value).strip().lower()
+    return cleaned if cleaned in canonical else None
 
 ## Row level cleaning
 def drop_blank_rows(df: pd.DataFrame) -> pd.DataFrame:
