@@ -1,7 +1,9 @@
-# utilities/cleaner.py - functions for cleaning and transforming individual cell values and dropping blank/decorative rows from data frames
-# Responsibilities:
-# - Transforms individual cell values 
-# - Remove blanks and decorative rows from a data frame
+"""
+utilities/cleaner.py - functions for cleaning and transforming individual cell values and dropping blank/decorative rows from data frames
+Responsibilities:
+- Transforms individual cell values 
+- Remove blanks and decorative rows from a data frame
+"""
 
 import re
 import logging

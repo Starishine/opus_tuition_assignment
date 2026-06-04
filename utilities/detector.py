@@ -1,7 +1,9 @@
-# utilities/detector.py - functions for detecting file types, header rows, and generating file hashes for caching
-# Responsibilities:
-# - Detect file type based on header row matching and file name heuristics
-# - Generate file hashes for caching and change detection
+""" 
+utilities/detector.py - functions for detecting file types, header rows, and generating file hashes for caching
+Responsibilities:
+- Detect file type based on header row matching and file name heuristics
+- Generate file hashes for caching and change detection
+"""
 
 import re
 import hashlib 
@@ -182,7 +184,7 @@ if __name__ == "__main__":
     path1 = "data/tutor_assignments_raw.xlsx"
     path2 = "data/invoice_export_q1.xlsx"
     path3 = "data/lesson_logs_messy.xlsx"
-    df, file_type = load_file(path3)
+    df, file_type = load_file(path1)
     print(f"Detected file type: {file_type}")
     print(df.head())
     print(df.columns)
