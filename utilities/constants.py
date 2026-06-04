@@ -1,4 +1,4 @@
-# Constants for the pipeline and data validation
+# utilities/constants.py - Constants for the pipeline and data validation
 
 EXPECTED_COLUMNS: dict[str, list[str]] = {
     "tutor_assignments": [
@@ -33,6 +33,8 @@ DATE_FORMATS: list[str] = [
     "%b %d, %Y",  # Mon Day, Year   — Jan 15, 2024
     "%d/%m/%y",   # Two-digit year  — 15/01/24
 ]
+
+MISSING_SENTINELS: set[str] = {"n/a", "na", "none", "null", "missing", "unknown", "-", "", "tbc", "tbd"}
 
 
 

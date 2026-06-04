@@ -1,3 +1,8 @@
+# utilities/detector.py - functions for detecting file types, header rows, and generating file hashes for caching
+# Responsibilities:
+# - Detect file type based on header row matching and file name heuristics
+# - Generate file hashes for caching and change detection
+
 import re
 import hashlib 
 import pandas as pd
