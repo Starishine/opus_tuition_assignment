@@ -6,7 +6,7 @@ EXPECTED_COLUMNS: dict[str, list[str]] = {
         "hourly rate","start date","status","contact email" 
     ], 
 
-    "lessons": [
+    "lesson_logs": [
         "lesson id", "assignment id", "date", "duration",
         "attendance", "notes", "fee"
     ], 

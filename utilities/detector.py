@@ -81,8 +81,8 @@ def detect_header_row(path: str | Path, threshold: float = 0.5,
     else:
         df_raw = pd.read_csv(path, header=None, nrows=max_scan_rows)
     best_score = 0.0
-    best_row_idx = -1
-    best_file_type = None
+    best_row_idx = 0
+    best_file_type = ""
 
     for row_idx in range(len(df_raw)):
         row = df_raw.iloc[row_idx]
@@ -104,19 +104,31 @@ def detect_header_row(path: str | Path, threshold: float = 0.5,
                 },
             )
             return best_row_idx, best_file_type
+    # if we scanned all rows, but theres no header, then try detecting the file type based on file name
     if best_score < threshold:
         logger.warning(
         "Header score below threshold — falling back to row 0. "
-        "Upload flagged for manual review.",
+        "Detecting file type based on name.",
         extra={
             "stage": "structure_detection",
             "best_score": round(best_score, 2),
             "threshold": threshold,
             },
         )
-        best_file_type = best_file_type or list(EXPECTED_COLUMNS.keys())[0]
-        return 0, best_file_type
- 
+
+        file_name = Path(path).name.lower()
+
+        # remove spaces, underscores, and dashes for more matching
+        stripped_name = re.sub(r"[\s_-]+", "", file_name)
+        for file_type in EXPECTED_COLUMNS.keys():
+            stripped_file_type = re.sub(r"[\s_-]+", "", file_type)
+            if stripped_file_type in stripped_name:
+                logger.info(f"Inserting header for detected file type: {file_type} based on file name")
+                insert_header(path, file_type)
+                best_file_type = file_type
+                best_row_idx = 0
+                break
+        
     logger.info(
         "Header detected (threshold met, secondary check skipped)",
         extra={
@@ -127,6 +139,24 @@ def detect_header_row(path: str | Path, threshold: float = 0.5,
         },
     )
     return best_row_idx, best_file_type
+
+
+def insert_header(path: str | Path, file_type: str) -> None:
+    expected_cols = EXPECTED_COLUMNS[file_type]
+    if Path(path).suffix.lower() == '.xlsx':
+        df_raw = pd.read_excel(path, header=None)
+    else:
+        df_raw = pd.read_csv(path, header=None)
+    
+    # Insert the expected columns as the first row
+    new_df = pd.DataFrame([expected_cols], columns=df_raw.columns)
+    new_df = pd.concat([new_df, df_raw], ignore_index=True)
+
+    # Save back to the same file
+    if Path(path).suffix.lower() == '.xlsx':
+        new_df.to_excel(path, index=False, header=False)
+    else:
+        new_df.to_csv(path, index=False, header=False)
 
 def load_file(path:str | Path) -> tuple[pd.DataFrame, str]:
     header_row, file_type = detect_header_row(path)
@@ -150,4 +180,5 @@ if __name__ == "__main__":
     df, file_type = load_file(path3)
     print(f"Detected file type: {file_type}")
     print(df.head())
+    print(df.columns)
 
