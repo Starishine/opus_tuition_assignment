@@ -32,7 +32,7 @@ from .cleaner import (
 from .col_resolver import resolve_columns, rget
 from .constants import STATUS_COLUMNS, MISSING_SENTINELS, EXPECTED_COLUMNS
 
-logger = logging.getLogger("opus.validator")
+logger = logging.getLogger("data_pipeline.validator")
 
 # Canonical status values — sourced from STATUS_COLUMNS in constants.py
 

@@ -36,5 +36,8 @@ DATE_FORMATS: list[str] = [
 
 MISSING_SENTINELS: set[str] = {"n/a", "na", "none", "null", "missing", "unknown", "-", "", "tbc", "tbd"}
 
-
-
+UNIQUE_KEYS : dict[str, list[str]] = {
+    "tutor_assignments": ["assignment_id"],
+    "lesson_logs": ["lesson_id"],
+    "invoice": ["invoice_id"]
+}
