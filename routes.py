@@ -19,6 +19,7 @@ import logging
 from pythonjsonlogger import jsonlogger
 from pipeline import run_pipeline
 from pathlib import Path
+from db.storage import insert_uploads, check_duplicate_hash
 
 # Set up JSON logging
 
@@ -71,6 +72,21 @@ async def upload_file(file: UploadFile = File(...)):
             "error": "INTERNAL_ERROR",
             "message": "Pipeline failed unexpectedly. Check server logs."
         })
+    
+    existing_upload_id = check_duplicate_hash(result.get("file_hash"))
+    if existing_upload_id: 
+        raise HTTPException(status_code=409, detail={
+            "error": "DUPLICATE_FILE",
+            "message": f"This file has already been uploaded with upload_id: {existing_upload_id}",
+            "original_upload_id": existing_upload_id
+        })
+    
+    insert_uploads(
+        upload_id=upload_id,
+        file_name=file.filename,
+        result=result
+    )
+
     
     logger.info(
         "File upload and processing successful", 

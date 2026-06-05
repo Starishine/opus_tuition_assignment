@@ -276,7 +276,7 @@ def validate_lesson_logs(df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
     return pd.DataFrame(clean_rows), quarantine
 
 # Clean and validate invoice_export_q1.xlsx rows.
-# Required: invoice id, tutor id, student_name, invoice date, amount, payment status
+# Required: invoice id, assignment id, student_name, invoice date, amount, payment status
 # Optional: payment date, notes
 
 # Edge cases:
@@ -300,7 +300,7 @@ def validate_invoices (df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
         errors: list[dict] = []
 
         invoice_id   = clean_text(rget(raw, col_map, "invoice id"))
-        tutor_id     = clean_text(rget(raw, col_map, "tutor id"))
+        assignment_id = clean_text(rget(raw, col_map, "assignment id"))
         student_name = clean_text(rget(raw, col_map, "student name"))
         notes        = clean_text(rget(raw, col_map, "notes"))
 
@@ -319,7 +319,7 @@ def validate_invoices (df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
         # --- Required field checks ---
         for field, val in [
             ("invoice id", invoice_id),
-            ("tutor id", tutor_id),
+            ("assignment id", assignment_id),
             ("student name", student_name),
         ]:
             if val is None:
@@ -345,7 +345,7 @@ def validate_invoices (df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
                 "row_number": row_num,
                 "raw_data": raw,
                 "invoice_id": invoice_id,
-                "tutor_id": tutor_id,
+                "assignment_id": assignment_id,
                 "student_name": student_name,
                 "invoice_date": invoice_date,
                 "amount": amount,

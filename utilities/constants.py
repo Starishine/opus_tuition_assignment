@@ -12,7 +12,7 @@ EXPECTED_COLUMNS: dict[str, list[str]] = {
     ], 
 
     "invoice" : [
-        "invoice id", "tutor id", "student name", "invoice date",
+        "invoice id", "assignment id", "student name", "invoice date",
         "amount", "payment status", "payment date", "notes"
     ]
 }

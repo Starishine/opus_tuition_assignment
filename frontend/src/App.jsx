@@ -102,7 +102,7 @@ export default function App() {
                 <>
                   <UploadCloud className="icon-large accent-color" />
                   <h3>Click to upload or drag and drop</h3>
-                  <p className="muted">Excel (.xlsx) or CSV files only • Max 10MB</p>
+                  <p className="muted">Excel (.xlsx) or CSV (.csv) files only • Max 10MB</p>
                   <button type="button" className="btn">
                     Browse Files
                   </button>
