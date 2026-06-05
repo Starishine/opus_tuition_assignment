@@ -15,6 +15,26 @@ from pipeline import run_pipeline
 logger = logging.getLogger("data_pipeline.routes")
 app = FastAPI(title = "Data Pipeline API")
 
+import logging
+from pythonjsonlogger import jsonlogger
+from pipeline import run_pipeline
+from pathlib import Path
+
+# Set up JSON logging
+
+# Defining directory 
+log_dir = Path("logs")
+log_dir.mkdir(parents=True, exist_ok=True) # Create logs directory if it doesn't exist
+log_file = log_dir / "pipeline.log"
+
+# Configure logging to write to file and console with JSON format
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
+handler = logging.FileHandler(log_file)
+formatter = jsonlogger.JsonFormatter()
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -51,6 +71,20 @@ async def upload_file(file: UploadFile = File(...)):
             "error": "INTERNAL_ERROR",
             "message": "Pipeline failed unexpectedly. Check server logs."
         })
+    
+    logger.info(
+        "File upload and processing successful", 
+        extra={
+            "upload_id": upload_id,
+            "original_filename": file.filename,
+            "file_type": result["file_type"],
+            "metrics": {
+                "rows_received": result["rows_received"],
+                "rows_accepted": result["rows_accepted"],
+                "rows_quarantined": result["rows_quarantined"],
+            }
+        }
+    )
 
     return {
         "upload_id": upload_id,
