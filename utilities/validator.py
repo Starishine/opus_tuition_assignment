@@ -170,6 +170,8 @@ def validate_tutor_assignments(df: pd.DataFrame) -> tuple[pd.DataFrame, list[dic
             quarantine.extend(errors)
         else:
             clean_rows.append({
+                "row_number": row_num,
+                "raw_data": raw,
                 "assignment_id": assignment_id,
                 "tutor_name": tutor_name,
                 "student_name": student_name,
@@ -260,6 +262,8 @@ def validate_lesson_logs(df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
             quarantine.extend(errors)
         else:
             clean_rows.append({
+                "row_number": row_num,
+                "raw_data": raw,
                 "lesson_id": lesson_id,
                 "assignment_id": assignment_id,
                 "date": date,
@@ -338,6 +342,8 @@ def validate_invoices (df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
             quarantine.extend(errors)
         else:
             clean_rows.append({
+                "row_number": row_num,
+                "raw_data": raw,
                 "invoice_id": invoice_id,
                 "tutor_id": tutor_id,
                 "student_name": student_name,

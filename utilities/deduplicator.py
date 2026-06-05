@@ -35,16 +35,30 @@ def detect_duplicates(df:pd.DataFrame, file_type:str) -> tuple[pd.DataFrame, lis
 
     quarantine_entries: list[dict] = []
     for _, dup_row in dup_df.iterrows():
+
+        # Safely extract the hidden metadata - row_number and raw_data - that we attached in the validator. If these keys are missing, we can still quarantine the duplicate based on the key column values, but we'll log a warning since it may make troubleshooting harder.
+        row_num = dup_row.get("row_number", None)
+        raw_dict = dup_row.get("raw_data", None)
+
+        # Fallback : use cleaned row but strip NaN values
+        if not isinstance(raw_dict, dict):
+            fallback_dict = dup_row.drop(["row_number", "raw_data"], errors="ignore").to_dict()
+            raw_dict = {k: (None if pd.isna(v) else v) for k, v in fallback_dict.items()}
+        
         quarantine_entries.append({
-            "row_number":    None,   # position lost after validation pass; raw_data is the identifier
-            "raw_data": dup_row.to_dict(),
+            "row_number": int(row_num),
+            "raw_data": raw_dict,
             "reason_code": "DUPLICATE_RECORD",
             "reason_detail": (
                 f"Duplicate of an earlier record with the same "
                 f"{present_keys} value(s)."
             ),
         })
- 
+
+    # Clean up the metadata columns so they don't leak into the final database output
+    cols_to_drop = ["row_number", "raw_data"]
+    unique_df = unique_df.drop(columns=[c for c in cols_to_drop if c in unique_df.columns], errors="ignore")
+
     if quarantine_entries:
         logger.info(
             "Duplicates detected",
