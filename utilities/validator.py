@@ -125,6 +125,8 @@ def validate_tutor_assignments(df: pd.DataFrame) -> tuple[pd.DataFrame, list[dic
 
     for i, raw in enumerate(df.to_dict(orient="records")):
         row_num = i + 2  # +1 for 1-based, +1 for header row
+        # Convert pandas NaN to Python None for easier handling in cleaners and quarantine entries
+        raw = {k: (None if pd.isna(v) else v) for k, v in raw.items()} 
         errors: list[dict] = []
 
         assignment_id = clean_text(rget(raw, col_map, "assignment id"))
@@ -201,6 +203,8 @@ def validate_lesson_logs(df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
 
     for i, raw in enumerate(df.to_dict(orient="records")):
         row_num = i + 2
+        # Convert pandas NaN to Python None for easier handling in cleaners and quarantine entries
+        raw = {k: (None if pd.isna(v) else v) for k, v in raw.items()} 
         errors: list[dict] = []
 
         lesson_id     = clean_text(rget(raw, col_map, "lesson id"))
@@ -287,6 +291,8 @@ def validate_invoices (df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
 
     for i, raw in enumerate(df.to_dict(orient="records")):
         row_num = i + 2
+        # Convert pandas NaN to Python None for easier handling in cleaners and quarantine entries
+        raw = {k: (None if pd.isna(v) else v) for k, v in raw.items()} 
         errors: list[dict] = []
 
         invoice_id   = clean_text(rget(raw, col_map, "invoice id"))
