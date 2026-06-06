@@ -34,8 +34,8 @@ CREATE TABLE IF NOT EXISTS students (
 
 CREATE TABLE IF NOT EXISTS assignments (
     assignment_id SERIAL PRIMARY KEY, -- internal db id key
-    source_id TEXT UNIQUE NOT NULL,
-    upload_id TEXT NOT NULL REFERENCES uploads(upload_id), -- excel key
+    source_id TEXT UNIQUE NOT NULL, -- excel key
+    upload_id TEXT NOT NULL REFERENCES uploads(upload_id),
     tutor_id INTEGER NOT NULL REFERENCES tutors(tutor_id),
     student_id INTEGER NOT NULL REFERENCES students(student_id),
     subject TEXT NOT NULL, 

@@ -300,7 +300,7 @@ def validate_invoices (df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
         errors: list[dict] = []
 
         invoice_id   = clean_text(rget(raw, col_map, "invoice id"))
-        assignment_id = clean_text(rget(raw, col_map, "assignment id"))
+        assignment_id = clean_text(rget(raw, col_map, "tutor id"))
         student_name = clean_text(rget(raw, col_map, "student name"))
         notes        = clean_text(rget(raw, col_map, "notes"))
 

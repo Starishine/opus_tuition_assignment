@@ -10,6 +10,7 @@ import json
 import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
+import pandas as pd
 
 load_dotenv()
 logger = logging.getLogger("data_pipeline.storage")
@@ -70,7 +71,17 @@ def insert_uploads(upload_id: str, file_name: str, result: dict) -> None:
         if file_type == "tutor_assignments":
             insert_assignments(cur, upload_id, clean_df)
         elif file_type == "lesson_logs":
-            insert_lessons(cur, upload_id, clean_df)
+            late_quarantine = insert_lessons(cur, upload_id, clean_df)
+            quarantine.extend(late_quarantine)
+            rows_accepted = result.get("rows_accepted") - len(late_quarantine)
+            rows_quarantined = result.get("rows_quarantined") + len(late_quarantine)
+
+            cur.execute(""" UPDATE uploads SET rows_accepted = %s, rows_quarantined = %s WHERE upload_id = %s""", (
+                rows_accepted,
+                rows_quarantined,
+                upload_id
+             )
+            )
         elif file_type == "invoice":
             insert_invoices(cur, upload_id, clean_df)
 
@@ -90,7 +101,10 @@ def insert_uploads(upload_id: str, file_name: str, result: dict) -> None:
 
 
 def insert_assignments(cur, upload_id, df):
-    for _, row in df.iterrows():
+    print(df)
+    records = df.to_dict(orient="records")
+    for row in records:
+        row = {k: (None if pd.isna(v) else v) for k, v in row.items()}
         tutor_id = get_or_create_tutor(cur, row.get("tutor_name"), row.get("contact_email"))
         student_id = get_or_create_student(cur, row.get("student_name"), row.get("level"))
         source_id = row.get("assignment_id")
@@ -115,7 +129,7 @@ def insert_assignments(cur, upload_id, df):
 
 
 def get_or_create_tutor(cur, tutor_name, tutor_email):
-    cur.execute("""SELECT tutor_id FROM tutors WHERE tutor_name = %s AND tutor_email = %s""", (tutor_name, tutor_email))
+    cur.execute("""SELECT tutor_id FROM tutors WHERE tutor_name = %s""", (tutor_name,))
     row = cur.fetchone()
     if row:
         return row[0]
@@ -139,14 +153,36 @@ def get_or_create_student(cur, student_name, level):
         return cur.fetchone()[0]
 
 
-def insert_lessons(cur, upload_id, df) -> None:
-    for _, row in df.iterrows():
+def insert_lessons(cur, upload_id, df) -> list[dict]:
+    late_quarantine = [] 
+    records = df.to_dict(orient="records")
+    for row in records:
+        row = {k: (None if pd.isna(v) else v) for k, v in row.items()}
+        print(row)
         source_id = row.get("lesson_id")
         assignment_id = row.get("assignment_id")
         date = row.get("date")
         duration = row.get("duration")
         attendance = row.get("attendance")
         notes = row.get("notes")
+        row_number = row.get("row_number")
+        cur.execute("""SELECT assignment_id FROM assignments WHERE source_id = %s""", (assignment_id,))
+
+        result = cur.fetchone()
+
+        if result is None:
+            late_quarantine.append({
+                "row_number": row_number,
+                "reason_code": "UNRESOLVED_ASSIGNMENT_ID",
+                "reason_detail": (
+                    f"Assignment '{assignment_id}' does not exist in the database. "
+                    f"The assignment row may have been quarantined during its upload "
+                    f"(e.g. missing required field), or the assignments file has not "
+                    f"been uploaded yet. Upload or fix the assignment first, then re-upload this file."
+                ),
+                "raw_data": dict(row),
+            })
+            continue
 
         cur.execute ("""
         INSERT INTO lessons (source_id, upload_id, assignment_id, date, duration, attendance, notes)
@@ -160,12 +196,17 @@ def insert_lessons(cur, upload_id, df) -> None:
             attendance,
             notes
          )) 
+    return late_quarantine
+        
 
 def insert_invoices(cur, upload_id, df) -> None:
-    for _, row in df.iterrows():
+    print(df)
+    records = df.to_dict(orient="records")
+    for row in records:
+        row = {k: (None if pd.isna(v) else v) for k, v in row.items()}
         source_id = row.get("invoice_id")
         assignment_id = row.get("assignment_id")
-        student_id = get_student_id(cur, row.get("student_name"), row.get("level"))
+        student_id = get_student_id(cur, row.get("student_name"))
         invoice_date = row.get("invoice_date")
         payment_status = row.get("status")
         payment_date = row.get("payment_date")
@@ -185,8 +226,8 @@ def insert_invoices(cur, upload_id, df) -> None:
             notes
          ))
 
-def get_student_id(cur, student_name, level):
-    cur.execute("""SELECT student_id FROM students WHERE student_name = %s AND level = %s""", (student_name, level))
+def get_student_id(cur, student_name):
+    cur.execute("""SELECT student_id FROM students WHERE student_name = %s""", (student_name,))
     row = cur.fetchone()
     return row[0] if row else None
 

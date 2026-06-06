@@ -56,8 +56,8 @@ def detect_duplicates(df:pd.DataFrame, file_type:str) -> tuple[pd.DataFrame, lis
         })
 
     # Clean up the metadata columns so they don't leak into the final database output
-    cols_to_drop = ["row_number", "raw_data"]
-    unique_df = unique_df.drop(columns=[c for c in cols_to_drop if c in unique_df.columns], errors="ignore")
+    # cols_to_drop = ["row_number", "raw_data"]
+    # unique_df = unique_df.drop(columns=[c for c in cols_to_drop if c in unique_df.columns], errors="ignore")
 
     if quarantine_entries:
         logger.info(

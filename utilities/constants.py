@@ -12,7 +12,7 @@ EXPECTED_COLUMNS: dict[str, list[str]] = {
     ], 
 
     "invoice" : [
-        "invoice id", "assignment id", "student name", "invoice date",
+        "invoice id", "tutor id", "student name", "invoice date",
         "amount", "payment status", "payment date", "notes"
     ]
 }
@@ -40,7 +40,7 @@ DATE_FORMATS: list[str] = [
 MISSING_SENTINELS: set[str] = {"n/a", "na", "none", "null", "missing", "unknown", "-", "", "tbc", "tbd"}
 
 UNIQUE_KEYS : dict[str, list[str]] = {
-    "tutor_assignments": ["assignment_id"],
+    "tutor_assignments": ["tutor_id", "student_id", "subject", "start_date"],
     "lesson_logs": ["lesson_id"],
     "invoice": ["invoice_id"]
 }
