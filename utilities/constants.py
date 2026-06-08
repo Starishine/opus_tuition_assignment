@@ -27,14 +27,13 @@ DATE_FORMATS: list[str] = [
     "%Y-%m-%d",   # ISO 8601        — 2024-01-15
     "%d/%m/%Y",   # UK slash        — 15/01/2024
     "%m/%d/%Y",   # US slash        — 01/15/2024
+    "%d/%m/%y",   # Two-digit year  — 15/01/24
     "%d-%m-%Y",   # UK dash         — 15-01-2024
     "%d %b %Y",   # Day-Mon-Year    — 15 Jan 2024
     "%d %B %Y",   # Day-Month-Year  — 15 January 2024
     "%b %d, %Y",  # Mon Day, Year   — Jan 15, 2024
     "%B %d, %Y",  # Month Day, Year — January 15, 2024
-    "%y/%m/%d",   # Two-digit year  — 15/01/24
     "%d-%b-%Y",   # Day-Mon-Year    — 15-Jan-2024
-    "%d/%m/%y",   # Two-digit year  — 15/01/24
 ]
 
 MISSING_SENTINELS: set[str] = {"n/a", "na", "none", "null", "missing", "unknown", "-", "", "tbc", "tbd"}
