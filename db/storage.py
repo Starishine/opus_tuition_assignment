@@ -97,6 +97,7 @@ def insert_uploads(upload_id: str, file_name: str, result: dict) -> None:
 
         if quarantine:
             insert_quarantine(cur, upload_id, file_type, quarantine)
+            insert_aliases(cur, quarantine, file_type)
         conn.commit()
         logger.info(
             "Upload saved to database",
@@ -293,13 +294,16 @@ def insert_aliases(cur, quarantine: list[dict], file_type: str):
         alias_id = entry.get("alias_id")
         canonical_id = entry.get("canonical_id")
         if alias_id and canonical_id:
+            # using ON CONFLICT DO NOTHING to avoid duplicate alias entries if the same duplicate appears multiple times in the file
             cur.execute("""
-                INSERT INTO aliases (alias_id, canonical_id, file_type)
-                VALUES (%s, %s, %s) """, 
-                (alias_id,
-                canonical_id,
-                file_type
-                ))
+                INSERT INTO source_id_aliases (alias_id, canonical_id, file_type)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (alias_id, file_type) DO NOTHING
+            """, 
+            (alias_id,
+            canonical_id,
+            file_type
+            ))
     
 def resolve_assignment_id(cur, source_id: str) -> str | None:
     # Look up the assignment_id in the assignments table
