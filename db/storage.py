@@ -40,7 +40,7 @@ def check_duplicate_hash(file_hash: str) -> bool:
     return row[0] if row else None
 
 # insert statements
-def insert_uploads(upload_id: str, file_name: str, result: dict) -> None: 
+def insert_uploads(upload_id: str, file_name: str, result: dict) -> tuple[str, str, int, int, int, list[dict]]: 
     file_type = result.get("file_type")
     clean_df = result.get("clean_df")
     quarantine = result.get("quarantine")
@@ -109,6 +109,13 @@ def insert_uploads(upload_id: str, file_name: str, result: dict) -> None:
             extra={"stage": "storage", "upload_id": upload_id, "error": str(e)},
         )
         raise
+    return {"upload_id": upload_id, 
+            "file_type": file_type, 
+            "rows_received": rows_received,
+            "rows_accepted": rows_accepted, 
+            "rows_quarantined": rows_quarantined,
+            "quarantine": quarantine
+            }
 
 
 def insert_assignments(cur, upload_id, df):
@@ -165,6 +172,14 @@ def get_or_create_student(cur, student_name, level):
 
 
 def insert_lessons(cur, upload_id, df) -> list[dict]:
+    # Precheck for assignmets 
+    cur.execute(""" SELECT COUNT(*) FROM assignments """)
+    total_assignments = cur.fetchone()[0]
+    if total_assignments == 0:
+        raise ValueError(
+            "No assignments found in database. Upload the tutor assignments file before uploading lesson logs."
+        )
+    
     late_quarantine = [] 
     records = df.to_dict(orient="records")
     for row in records:
@@ -210,6 +225,14 @@ def insert_lessons(cur, upload_id, df) -> list[dict]:
         
 
 def insert_invoices(cur, upload_id, df) -> list[dict]:
+    # Precheck for assignmets 
+    cur.execute(""" SELECT COUNT(*) FROM assignments """)
+    total_assignments = cur.fetchone()[0]
+    if total_assignments == 0:
+        raise ValueError(
+            "No assignments found in database. Upload the tutor assignments file before uploading lesson logs."
+        )
+    
     late_quarantine = []
     print(df)
     records = df.to_dict(orient="records")

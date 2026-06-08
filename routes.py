@@ -60,53 +60,61 @@ async def upload_file(file: UploadFile = File(...)):
         tmp_path = tmp.name
 
     try:
+        # 1. Run the data pipeline on the uploaded file.
         result = run_pipeline(tmp_path, upload_id)
+
+        # 2. Check for exact file duplicates
+        existing_upload_id = check_duplicate_hash(result.get("file_hash"))
+        if existing_upload_id: 
+            raise HTTPException(status_code=409, detail={
+                "error": "DUPLICATE_FILE",
+                "message": f"This file has already been uploaded with upload_id: {existing_upload_id}",
+                "original_upload_id": existing_upload_id
+            })
+        # 3. Insert into database 
+        final_response  = insert_uploads (
+            upload_id = upload_id,
+            file_name = file.filename,
+            result = result
+        )
+
     except ValueError as e:
+        # Cleanly catches ValueErrors from both run_pipeline AND insert_uploads
+        error_type = "DEPENDENCY_ERROR" if "DEPENDENCY_ERROR" in str(e) else "PIPELINE_ERROR"
         raise HTTPException(status_code=422, detail={
-            "error": "PIPELINE_ERROR",
+            "error": error_type,
             "message": str(e)
         })
+    except HTTPException:
+        # Allow our custom 409 (or other HTTP exceptions) to pass through cleanly
+        raise
     except Exception as e:
         logger.error(f"Unexpected pipeline failure: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail={
             "error": "INTERNAL_ERROR",
             "message": "Pipeline failed unexpectedly. Check server logs."
         })
-    
-    existing_upload_id = check_duplicate_hash(result.get("file_hash"))
-    if existing_upload_id: 
-        raise HTTPException(status_code=409, detail={
-            "error": "DUPLICATE_FILE",
-            "message": f"This file has already been uploaded with upload_id: {existing_upload_id}",
-            "original_upload_id": existing_upload_id
-        })
-    
-    insert_uploads(
-        upload_id=upload_id,
-        file_name=file.filename,
-        result=result
-    )
-
-    
+        
+    # If we made it here, the entire process succeeded!
     logger.info(
         "File upload and processing successful", 
         extra={
             "upload_id": upload_id,
             "original_filename": file.filename,
-            "file_type": result["file_type"],
+            "file_type": final_response.get("file_type"),
             "metrics": {
-                "rows_received": result["rows_received"],
-                "rows_accepted": result["rows_accepted"],
-                "rows_quarantined": result["rows_quarantined"],
+                "rows_received": final_response.get("rows_received"),
+                "rows_accepted": final_response.get("rows_accepted"),
+                "rows_quarantined": final_response.get("rows_quarantined"),
             }
         }
     )
 
     return {
         "upload_id": upload_id,
-        "file_type": result["file_type"],
-        "rows_received": result["rows_received"],
-        "rows_accepted": result["rows_accepted"],
-        "rows_quarantined": result["rows_quarantined"],
-        "quarantine": result["quarantine"],
+        "file_type": final_response.get("file_type"),
+        "rows_received": final_response.get("rows_received"),
+        "rows_accepted": final_response.get("rows_accepted"),
+        "rows_quarantined": final_response.get("rows_quarantined"),
+        "quarantine": final_response.get("quarantine"),
     }
