@@ -83,7 +83,17 @@ def insert_uploads(upload_id: str, file_name: str, result: dict) -> None:
              )
             )
         elif file_type == "invoice":
-            insert_invoices(cur, upload_id, clean_df)
+            late_quarantine = insert_invoices(cur, upload_id, clean_df)
+            quarantine.extend(late_quarantine)
+            rows_accepted = result.get("rows_accepted") - len(late_quarantine)
+            rows_quarantined = result.get("rows_quarantined") + len(late_quarantine)
+
+            cur.execute(""" UPDATE uploads SET rows_accepted = %s, rows_quarantined = %s WHERE upload_id = %s""", (
+                rows_accepted,
+                rows_quarantined,
+                upload_id
+             )
+            )
 
         if quarantine:
             insert_quarantine(cur, upload_id, file_type, quarantine)
@@ -166,11 +176,10 @@ def insert_lessons(cur, upload_id, df) -> list[dict]:
         attendance = row.get("attendance")
         notes = row.get("notes")
         row_number = row.get("row_number")
-        cur.execute("""SELECT assignment_id FROM assignments WHERE source_id = %s""", (assignment_id,))
 
-        result = cur.fetchone()
+        resolved_assignment_id = resolve_assignment_id(cur, assignment_id)
 
-        if result is None:
+        if resolved_assignment_id is None:
             late_quarantine.append({
                 "row_number": row_number,
                 "reason_code": "UNRESOLVED_ASSIGNMENT_ID",
@@ -190,7 +199,7 @@ def insert_lessons(cur, upload_id, df) -> list[dict]:
         """, (
             source_id,
             upload_id,
-            assignment_id,
+            resolved_assignment_id,
             date,
             duration,
             attendance,
@@ -199,32 +208,63 @@ def insert_lessons(cur, upload_id, df) -> list[dict]:
     return late_quarantine
         
 
-def insert_invoices(cur, upload_id, df) -> None:
+def insert_invoices(cur, upload_id, df) -> list[dict]:
+    late_quarantine = []
     print(df)
     records = df.to_dict(orient="records")
     for row in records:
         row = {k: (None if pd.isna(v) else v) for k, v in row.items()}
+        student_id = get_student_id(cur, row.get("student_name"))
+        if student_id is None:
+            late_quarantine.append({
+                "row_number": row.get("row_number"),
+                "reason_code": "UNRESOLVED_STUDENT_NAME",
+                "reason_detail": (
+                    f"Student '{row.get('student_name')}' does not exist in the database. "
+                    f"The student may be referenced in the assignments file but that file has not "
+                    f"been uploaded yet, or the student row in the assignments file was quarantined "
+                    f"(e.g. missing required field). Upload or fix the assignments file first, then re-upload this file."
+                ),
+                "raw_data": dict(row),
+            })
+            continue
+
         source_id = row.get("invoice_id")
         assignment_id = row.get("assignment_id")
-        student_id = get_student_id(cur, row.get("student_name"))
         invoice_date = row.get("invoice_date")
         payment_status = row.get("status")
         payment_date = row.get("payment_date")
         notes = row.get("notes")
+        row_number = row.get("row_number")
 
+        resolved_assignment_id = resolve_assignment_id(cur, assignment_id)
+        if resolved_assignment_id is None:
+            late_quarantine.append({
+                "row_number": row_number,
+                "reason_code": "UNRESOLVED_ASSIGNMENT_ID",
+                "reason_detail": (
+                    f"Assignment '{assignment_id}' does not exist in the database. "
+                    f"The assignment row may have been quarantined during its upload "
+                    f"(e.g. missing required field), or the assignments file has not "
+                    f"been uploaded yet. Upload or fix the assignment first, then re-upload this file."
+                ),
+                "raw_data": dict(row),
+            })
+            continue
         cur.execute ("""
         INSERT INTO invoices (source_id, upload_id, assignment_id, student_id, invoice_date, payment_status, payment_date, notes)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             source_id,
             upload_id,
-            assignment_id,
+            resolved_assignment_id,
             student_id,
             invoice_date,
             payment_status,
             payment_date,
             notes
          ))
+    return late_quarantine
 
 def get_student_id(cur, student_name):
     cur.execute("""SELECT student_id FROM students WHERE student_name = %s""", (student_name,))
@@ -245,3 +285,35 @@ def insert_quarantine(cur, upload_id, file_type, quarantine):
             entry.get("reason_detail"),
             json.dumps(entry.get("raw_data", {}), default=str),
         ))
+
+def insert_aliases(cur, quarantine: list[dict], file_type: str):
+    for entry in quarantine:
+        if entry.get("reason_code") != "DUPLICATE_RECORD":
+            continue
+        alias_id = entry.get("alias_id")
+        canonical_id = entry.get("canonical_id")
+        if alias_id and canonical_id:
+            cur.execute("""
+                INSERT INTO aliases (alias_id, canonical_id, file_type)
+                VALUES (%s, %s, %s) """, 
+                (alias_id,
+                canonical_id,
+                file_type
+                ))
+    
+def resolve_assignment_id(cur, source_id: str) -> str | None:
+    # Look up the assignment_id in the assignments table
+    cur.execute("""SELECT source_id FROM assignments WHERE source_id = %s""", (source_id,))
+
+    if cur.fetchone():
+        return source_id
+    # If not found, look for an alias in the aliases table
+    cur.execute("""SELECT canonical_id FROM source_id_aliases WHERE alias_id = %s """, (source_id,))
+    row = cur.fetchone()
+    if row: 
+        logger.info(
+            "Resolved assignment alias",
+            extra={"alias": source_id, "canonical": row[0], "stage": "storage"}
+        )
+        return row[0]
+    return None

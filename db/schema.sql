@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS tutors (
 CREATE TABLE IF NOT EXISTS students (
     student_id SERIAL PRIMARY KEY,
     student_name TEXT NOT NULL,
-    level TEXT NOT NULL
+    level TEXT 
 );
 
 CREATE TABLE IF NOT EXISTS assignments (
@@ -76,4 +76,12 @@ CREATE TABLE IF NOT EXISTS quarantine (
     reason_code TEXT NOT NULL,
     reason_detail TEXT NOT NULL,
     raw_data JSONB 
+);
+
+CREATE TABLE IF NOT EXISTS source_id_aliases (
+    alias_id TEXT NOT NULL, -- quarantined duplicate source id
+    canonical_id TEXT NOT NULL, -- original source id that is in use in the db
+    file_type TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (alias_id, file_type)
 );

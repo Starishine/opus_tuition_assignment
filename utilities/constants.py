@@ -39,8 +39,15 @@ DATE_FORMATS: list[str] = [
 
 MISSING_SENTINELS: set[str] = {"n/a", "na", "none", "null", "missing", "unknown", "-", "", "tbc", "tbd"}
 
+# Candidate keys that make a row unique within its file type, used for deduplication.
 UNIQUE_KEYS : dict[str, list[str]] = {
     "tutor_assignments": ["tutor_id", "student_id", "subject", "start_date"],
-    "lesson_logs": ["lesson_id"],
-    "invoice": ["invoice_id"]
+    "lesson_logs": ["assignment_id", "date", "duration", "fee"],
+    "invoice": ["assignment_id", "invoice_date", "amount"]
+}
+
+SOURCE_ID_MAPPING: dict[str, str] = {
+    "tutor_assignments": "assignment_id",
+    "lesson_logs": "lesson_id",
+    "invoice": "invoice_id"
 }
