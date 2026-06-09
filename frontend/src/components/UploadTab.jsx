@@ -14,6 +14,15 @@ import "../App.css";
 
 const API = "http://localhost:8000";
 
+function MetricCard({ label, value, className = "" }) {
+    return (
+        <div className="metric">
+            <div className="label">{label}</div>
+            <div className={`value ${className}`}>{value}</div>
+        </div>
+    );
+}
+
 export default function UploadTab({ onUploadComplete }) {
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);

@@ -19,7 +19,7 @@ import logging
 from pythonjsonlogger import jsonlogger
 from pipeline import run_pipeline
 from pathlib import Path
-from db.storage import get_all_uploads, get_report_by_upload_id, insert_uploads, check_duplicate_hash
+from db.storage import get_all_uploads, get_report_by_upload_id, insert_uploads, check_duplicate_hash, get_records, get_quarantine
 
 # Set up JSON logging
 
@@ -148,7 +148,7 @@ def get_report_by_id(upload_id: str):
     return report
 
 @app.get("/records")
-def get_records(file_type: str, upload_id: str = None, date_from: str = None, date_to: str = None):
+def api_get_records(file_type: str, upload_id: str = None, date_from: str = None, date_to: str = None):
     valid_file_types = ["tutor_assignments", "lesson_logs", "invoice"]
     if file_type not in valid_file_types:
         raise HTTPException(status_code=400, detail={
