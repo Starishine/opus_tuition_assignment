@@ -344,3 +344,45 @@ def resolve_assignment_id(cur, source_id: str) -> str | None:
         )
         return row[0]
     return None
+
+# Returns all uploaded files, ordered by most recent upload first
+def get_all_uploads() -> list[dict]:
+    
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cur.execute("""SELECT upload_id, file_name, file_type, uploaded_at, rows_received, rows_accepted, rows_quarantined 
+                    FROM uploads 
+                    ORDER BY uploaded_at DESC""")
+    return [dict(row) for row in cur.fetchall()]
+
+
+# Returns detailed report for a specific upload_id, including quarantine breakdown and raw data for quarantined rows
+def get_report_by_upload_id(upload_id: str) -> dict | None:
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cur.execute(""" SELECT * FROM uploads WHERE upload_id = %s """, (upload_id,))
+    upload_row = cur.fetchone()
+    if not upload_row:
+        return None
+    
+    # Get quarantine entries for this upload
+    cur.execute("""
+                SELECT reason_code, COUNT(*) as count
+                FROM quarantine
+                WHERE upload_id = %s
+                GROUP BY reason_code ORDER BY count DESC
+            """, (upload_id,))
+    breakdown = [dict(row) for row in cur.fetchall()]
+
+    cur.execute("""
+                SELECT row_number, reason_code, reason_detail, raw_data
+                FROM quarantine WHERE upload_id = %s
+                ORDER BY row_number
+            """, (upload_id,))
+    quarantine_rows = [dict(r) for r in cur.fetchall()]
+    
+    return {
+        **dict(upload_row),
+        "quarantine_breakdown": breakdown,
+        "quarantine_rows": quarantine_rows
+    }

@@ -19,7 +19,7 @@ import logging
 from pythonjsonlogger import jsonlogger
 from pipeline import run_pipeline
 from pathlib import Path
-from db.storage import insert_uploads, check_duplicate_hash
+from db.storage import get_all_uploads, get_report_by_upload_id, insert_uploads, check_duplicate_hash
 
 # Set up JSON logging
 
@@ -118,3 +118,31 @@ async def upload_file(file: UploadFile = File(...)):
         "rows_quarantined": final_response.get("rows_quarantined"),
         "quarantine": final_response.get("quarantine"),
     }
+
+# Get all upload records 
+@app.get("/all_uploads")
+def list_uploads():
+    try: 
+        return {"uploads": get_all_uploads()} 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={
+            "error": "DATABASE_ERROR",
+            "message": str(e)
+            })
+
+# get report for a specific upload_id
+@app.get("/report/{upload_id}")
+def get_report_by_id(upload_id: str): 
+    try: 
+        report = get_report_by_upload_id(upload_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={
+            "error": "DATABASE_ERROR",
+            "message": str(e)
+            })
+    if not report:
+        raise HTTPException(status_code=404, detail={
+            "error": "NOT_FOUND",
+            "message": f"No report found for upload_id: {upload_id}"
+        })
+    return report
