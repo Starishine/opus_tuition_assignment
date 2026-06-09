@@ -451,3 +451,13 @@ def get_quarantine(upload_id: str) -> list[dict]:
                 ORDER BY row_number
             """, (upload_id,))
     return [dict(r) for r in cur.fetchall()]
+
+def delete_upload_api(upload_id: str): 
+    conn = get_connection()
+    cur = conn.cursor()
+    tables = ["assignments", "lessons", "invoices", "quarantine", "uploads"]
+    for table in tables:
+        cur.execute(f"""DELETE FROM {table} WHERE upload_id = %s""", (upload_id,))
+    deleted = cur.rowcount > 0 
+    conn.commit()
+    return deleted

@@ -19,7 +19,7 @@ import logging
 from pythonjsonlogger import jsonlogger
 from pipeline import run_pipeline
 from pathlib import Path
-from db.storage import get_all_uploads, get_report_by_upload_id, insert_uploads, check_duplicate_hash, get_records, get_quarantine
+from db.storage import get_all_uploads, get_report_by_upload_id, insert_uploads, check_duplicate_hash, get_records, get_quarantine, delete_upload_api
 
 # Set up JSON logging
 
@@ -174,3 +174,18 @@ def get_quarantine(upload_id: str):
             "error": "DATABASE_ERROR",
             "message": str(e)
         })
+    
+@app.delete("/delete/{upload_id}")
+def delete_upload(upload_id: str):
+    try:
+        record = delete_upload_api(upload_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={
+            "error": "DATABASE_ERROR", "message": str(e)
+        })
+    if not record:
+        raise HTTPException(status_code=404, detail={
+            "error": "NOT_FOUND",
+            "message": f"No upload found with id '{upload_id}'"
+        })
+    return {"deleted": upload_id}

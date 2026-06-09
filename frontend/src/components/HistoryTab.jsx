@@ -71,7 +71,7 @@ export default function HistoryTab() {
         if (!window.confirm(`Delete upload ${upload_id}? This cannot be undone.`))
             return;
 
-        await fetch(`${API}/uploads/${upload_id}`, { method: "DELETE" });
+        await fetch(`${API}/delete/${upload_id}`, { method: "DELETE" });
         fetchUploads();
         if (expanded === upload_id) {
             setExpanded(null); setReport(null);
