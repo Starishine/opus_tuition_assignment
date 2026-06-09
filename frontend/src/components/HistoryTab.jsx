@@ -11,6 +11,7 @@ import {
     Trash2
 } from "lucide-react";
 import "../App.css";
+import QuarantineTable from "./QuarantineTable";
 
 const API = "http://localhost:8000";
 
@@ -24,36 +25,6 @@ function MetricCard({ label, value, className = "" }) {
     );
 }
 
-function QuarantineTable({ rows }) {
-    if (!rows?.length) return null;
-    return (
-        <div className="quarantine">
-            <h4 className="quarantine-title">
-                <FileSpreadsheet className="icon-small" /> Quarantine Log
-            </h4>
-            <div className="quarantine-box">
-                <table className="q-table">
-                    <thead>
-                        <tr>
-                            <th>Row</th>
-                            <th>Code</th>
-                            <th>Detail</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((q, i) => (
-                            <tr key={i}>
-                                <td>{q.row_number ?? "—"}</td>
-                                <td><span className="badge danger">{q.reason_code}</span></td>
-                                <td>{q.reason_detail}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    );
-}
 
 export default function HistoryTab() {
     const [uploads, setUploads] = useState([]);
@@ -90,6 +61,7 @@ export default function HistoryTab() {
             const data = await res.json();
             console.log("Fetched report for upload_id %s: %o", upload_id, data);
             setReport(data);
+            console.log("Report data structure: %o", data);
         } finally {
             setRepLoading(false);
         }
@@ -150,9 +122,9 @@ export default function HistoryTab() {
 
                                     {report.quarantine_breakdown?.length > 0 && (
                                         <div style={{ marginBottom: 16 }}>
-                                            <h4>Quarantine Breakdown</h4>
+                                            <h4 style={{ marginBottom: 10 }}>Quarantine Breakdown</h4>
                                             <table className="q-table">
-                                                <thead><tr><th>Reason</th><th>Count</th></tr></thead>
+                                                <thead ><tr><th style={{ width: "50%" }}>Reason</th><th style={{ width: "85%" }}>Count</th></tr></thead>
                                                 <tbody>
                                                     {report.quarantine_breakdown.map((b, i) => (
                                                         <tr key={i}>

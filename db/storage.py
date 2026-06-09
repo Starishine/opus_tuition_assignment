@@ -192,6 +192,7 @@ def insert_lessons(cur, upload_id, df) -> list[dict]:
         attendance = row.get("attendance")
         notes = row.get("notes")
         row_number = row.get("row_number")
+        raw_data = row.get("raw_data")
 
         resolved_assignment_id = resolve_assignment_id(cur, assignment_id)
 
@@ -205,7 +206,7 @@ def insert_lessons(cur, upload_id, df) -> list[dict]:
                     f"(e.g. missing required field), or the assignments file has not "
                     f"been uploaded yet. Upload or fix the assignment first, then re-upload this file."
                 ),
-                "raw_data": dict(row),
+                "raw_data": raw_data,
             })
             continue
 
@@ -239,6 +240,7 @@ def insert_invoices(cur, upload_id, df) -> list[dict]:
     for row in records:
         row = {k: (None if pd.isna(v) else v) for k, v in row.items()}
         student_id = get_student_id(cur, row.get("student_name"))
+        raw_data = row.get("raw_data")
         if student_id is None:
             late_quarantine.append({
                 "row_number": row.get("row_number"),
@@ -249,7 +251,7 @@ def insert_invoices(cur, upload_id, df) -> list[dict]:
                     f"been uploaded yet, or the student row in the assignments file was quarantined "
                     f"(e.g. missing required field). Upload or fix the assignments file first, then re-upload this file."
                 ),
-                "raw_data": dict(row),
+                "raw_data": raw_data,
             })
             continue
 
@@ -260,6 +262,7 @@ def insert_invoices(cur, upload_id, df) -> list[dict]:
         payment_date = row.get("payment_date")
         notes = row.get("notes")
         row_number = row.get("row_number")
+        raw_data = row.get("raw_data")
 
         resolved_assignment_id = resolve_assignment_id(cur, assignment_id)
         if resolved_assignment_id is None:
@@ -272,7 +275,7 @@ def insert_invoices(cur, upload_id, df) -> list[dict]:
                     f"(e.g. missing required field), or the assignments file has not "
                     f"been uploaded yet. Upload or fix the assignment first, then re-upload this file."
                 ),
-                "raw_data": dict(row),
+                "raw_data": raw_data,
             })
             continue
         cur.execute ("""
@@ -373,13 +376,8 @@ def get_report_by_upload_id(upload_id: str) -> dict | None:
                 GROUP BY reason_code ORDER BY count DESC
             """, (upload_id,))
     breakdown = [dict(row) for row in cur.fetchall()]
-
-    cur.execute("""
-                SELECT row_number, reason_code, reason_detail, raw_data
-                FROM quarantine WHERE upload_id = %s
-                ORDER BY row_number
-            """, (upload_id,))
-    quarantine_rows = [dict(r) for r in cur.fetchall()]
+    
+    quarantine_rows = get_quarantine(upload_id)
     
     return {
         **dict(upload_row),
@@ -448,8 +446,8 @@ def get_quarantine(upload_id: str) -> list[dict]:
     conn = get_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) 
     cur.execute("""
-        SELECT *
-        FROM quarantine WHERE upload_id = %s
-        ORDER BY row_number
-    """, (upload_id,))
+                SELECT row_number, reason_code, reason_detail, raw_data
+                FROM quarantine WHERE upload_id = %s
+                ORDER BY row_number
+            """, (upload_id,))
     return [dict(r) for r in cur.fetchall()]

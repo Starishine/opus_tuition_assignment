@@ -212,6 +212,7 @@ p {
 .quarantine {
   padding: 1.5rem;
   background-color: rgba(239, 68, 68, 0.03);
+  width: 100%;
 }
 
 .quarantine-title {
@@ -228,7 +229,7 @@ p {
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   padding: 1rem;
-  max-height: 300px;
+  max-height: 600px;
   overflow-y: auto;
 }
 
@@ -372,7 +373,7 @@ p {
 }
 
 .q-table {
-  width: 100%;
+  width: 120%;
   border-collapse: collapse;
   font-size: 13px;
 }

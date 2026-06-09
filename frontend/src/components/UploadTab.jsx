@@ -10,6 +10,8 @@ import {
     ChevronDown,
     Trash2
 } from "lucide-react";
+
+import QuarantineTable from "./QuarantineTable";
 import "../App.css";
 
 const API = "http://localhost:8000";
