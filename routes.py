@@ -146,3 +146,31 @@ def get_report_by_id(upload_id: str):
             "message": f"No report found for upload_id: {upload_id}"
         })
     return report
+
+@app.get("/records")
+def get_records(file_type: str, upload_id: str = None, date_from: str = None, date_to: str = None):
+    valid_file_types = ["tutor_assignments", "lesson_logs", "invoice"]
+    if file_type not in valid_file_types:
+        raise HTTPException(status_code=400, detail={
+            "error": "INVALID_FILE_TYPE",
+            "message": f"Invalid file type. Must be one of: {', '.join(valid_file_types)}"
+        })
+    try:
+        records = get_records(file_type, upload_id, date_from, date_to)
+        return {"file_type": file_type, "count": len(records), "records": records}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={
+            "error": "DATABASE_ERROR",
+            "message": str(e)
+        })
+    
+@app.get("/quarantine")
+def get_quarantine(upload_id: str):
+    try:
+        records = get_quarantine(upload_id)
+        return {"count": len(records), "quarantine": records}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={
+            "error": "DATABASE_ERROR",
+            "message": str(e)
+        })

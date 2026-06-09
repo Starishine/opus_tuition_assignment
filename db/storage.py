@@ -386,3 +386,70 @@ def get_report_by_upload_id(upload_id: str) -> dict | None:
         "quarantine_breakdown": breakdown,
         "quarantine_rows": quarantine_rows
     }
+
+def get_records(file_type: str, upload_id: str = None, date_from: str = None, date_to: str = None) -> list[dict]:
+    params = []
+    conditions = []
+    if file_type == "tutor_assignments":
+        base = """
+            SELECT a.source_id AS assignment_id, a.upload_id,
+                   t.tutor_name, t.tutor_email,
+                   s.student_name, s.level,
+                   a.subject, a.start_date, a.hourly_rate, a.status
+            FROM assignments a
+            JOIN tutors t ON t.tutor_id = a.tutor_id
+            JOIN students s ON s.student_id = a.student_id
+        """
+        date_col = "a.start_date"
+        upload_prefix = "a"
+
+    elif file_type == "lesson_logs":
+        base = """
+            SELECT l.source_id AS lesson_id, l.upload_id,
+                   l.assignment_id, l.date, l.duration,
+                   l.attendance, l.notes
+            FROM lessons l
+        """
+        date_col = "l.date"
+        upload_prefix = "l"
+
+    elif file_type == "invoice":
+        base = """
+            SELECT i.source_id AS invoice_id, i.upload_id,
+                   i.assignment_id, s.student_name,
+                   i.invoice_date, i.payment_status, i.payment_date, i.notes
+            FROM invoices i
+            JOIN students s ON s.student_id = i.student_id
+        """
+        date_col = "i.invoice_date"
+        upload_prefix = "i"
+    else:
+        return []
+
+    if upload_id:
+        conditions.append(f"{upload_prefix}.upload_id = %s")
+        params.append(upload_id)
+    if date_from:
+        conditions.append(f"{date_col} >= %s")
+        params.append(date_from)
+    if date_to:
+        conditions.append(f"{date_col} <= %s")
+        params.append(date_to)
+
+    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    query = f"{base} {where} ORDER BY 1"
+
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) 
+    cur.execute(query, params)
+    return [dict(r) for r in cur.fetchall()]
+        
+def get_quarantine(upload_id: str) -> list[dict]:
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) 
+    cur.execute("""
+        SELECT *
+        FROM quarantine WHERE upload_id = %s
+        ORDER BY row_number
+    """, (upload_id,))
+    return [dict(r) for r in cur.fetchall()]
