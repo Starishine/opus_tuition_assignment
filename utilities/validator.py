@@ -127,7 +127,6 @@ def validate_tutor_assignments(df: pd.DataFrame) -> tuple[pd.DataFrame, list[dic
         row_num = i + 2  # +1 for 1-based, +1 for header row
         # Convert pandas NaN to Python None for easier handling in cleaners and quarantine entries
         raw = {k: (None if pd.isna(v) else v) for k, v in raw.items()} 
-        errors: list[dict] = []
 
         assignment_id = clean_text(rget(raw, col_map, "assignment id"))
         tutor_name    = clean_text(rget(raw, col_map, "tutor name"))
@@ -145,6 +144,7 @@ def validate_tutor_assignments(df: pd.DataFrame) -> tuple[pd.DataFrame, list[dic
         raw_status = rget(raw, col_map, "status")
         status     = normalise_status(raw_status, CANONICAL_STATUS["tutor_assignments"])
 
+        row_reasons = [] # Collect all errors for 1 row 
         # Required field checks - tutor, student, subject, hourly rate, start date, status
         for field, val in [("assignment id", assignment_id),
                            ("tutor name", tutor_name), 
@@ -152,22 +152,28 @@ def validate_tutor_assignments(df: pd.DataFrame) -> tuple[pd.DataFrame, list[dic
                            ("subject", subject),
                            ]:
             if val is None:
-                errors.append(_quarantine_entry(row_num, raw,
+                row_reasons.append(_quarantine_entry(row_num, raw,
                     "MISSING_REQUIRED_FIELD", f"Field '{field}' is blank or null (row {row_num})",))
 
         if start_date is None:
-            errors.append(_date_error("start date", raw_date, row_num, raw))
+            row_reasons.append(_date_error("start date", raw_date, row_num, raw))
 
         if hourly_rate is None:
-            errors.append(_numeric_error("hourly rate", raw_rate, row_num, raw))
+            row_reasons.append(_numeric_error("hourly rate", raw_rate, row_num, raw))
 
         if status is None:
-            errors.append(_status_error(
+            row_reasons.append(_status_error(
                 "status", raw_status, row_num, raw, CANONICAL_STATUS["tutor_assignments"],
             ))
-
-        if errors:
-            quarantine.extend(errors)
+        if row_reasons:
+            reason_code = "MULTIPLE_ISSUES" if len(row_reasons) > 1 else row_reasons[0]["reason_code"]
+            reason_detail = " | ".join(r["reason_detail"] for r in row_reasons)
+            combined_entries = {
+                **row_reasons[0],  
+                "reason_code": reason_code,
+                "reason_detail": reason_detail
+            }
+            quarantine.extend([combined_entries])
         else:
             clean_rows.append({
                 "row_number": row_num,
@@ -208,6 +214,7 @@ def validate_lesson_logs(df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
         # Convert pandas NaN to Python None for easier handling in cleaners and quarantine entries
         raw = {k: (None if pd.isna(v) else v) for k, v in raw.items()} 
         errors: list[dict] = []
+        row_reasons = [] # Collect all errors for 1 row
 
         lesson_id     = clean_text(rget(raw, col_map, "lesson id"))
         assignment_id = clean_text(rget(raw, col_map, "assignment id"))
@@ -237,29 +244,36 @@ def validate_lesson_logs(df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
 
         # Required field checks - assignment id, date, duration, attendance
         if assignment_id is None:
-            errors.append(_quarantine_entry(
+            row_reasons.append(_quarantine_entry(
                 row_num, raw,"MISSING_REQUIRED_FIELD",
                 f"Field 'assignment id' is blank or null (row {row_num})",
             ))
 
         if date is None:
-            errors.append(_date_error("date", raw_date, row_num, raw))
+            row_reasons.append(_date_error("date", raw_date, row_num, raw))
 
         if duration is None:
             if pd.notna(raw_duration) and duration_str not in MISSING_SENTINELS:
-                errors.append(_numeric_error("duration", raw_duration, row_num, raw))
+                row_reasons.append(_numeric_error("duration", raw_duration, row_num, raw))
             else:
-                errors.append(_quarantine_entry(
+                row_reasons.append(_quarantine_entry(
                     row_num, raw, "MISSING_REQUIRED_FIELD", f"Field 'duration' is blank or null (row {row_num})",
                 ))
 
         if attendance is None:
-            errors.append(_status_error(
+            row_reasons.append(_status_error(
                 "attendance", raw_attendance, row_num, raw, CANONICAL_STATUS["lessons_attendance"],
             ))
-
-        if errors:
-            quarantine.extend(errors)
+        
+        if row_reasons:
+            reason_code = "MULTIPLE_ISSUES" if len(row_reasons) > 1 else row_reasons[0]["reason_code"]
+            reason_detail = " | ".join(r["reason_detail"] for r in row_reasons)
+            combined_entries = {
+                **row_reasons[0],  
+                "reason_code": reason_code,
+                "reason_detail": reason_detail
+            }
+            quarantine.extend([combined_entries])
         else:
             clean_rows.append({
                 "row_number": row_num,
@@ -297,7 +311,7 @@ def validate_invoices (df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
         row_num = i + 2
         # Convert pandas NaN to Python None for easier handling in cleaners and quarantine entries
         raw = {k: (None if pd.isna(v) else v) for k, v in raw.items()} 
-        errors: list[dict] = []
+        row_reasons = [] # Collect all errors for 1 row
 
         invoice_id   = clean_text(rget(raw, col_map, "invoice id"))
         assignment_id = clean_text(rget(raw, col_map, "tutor id"))
@@ -323,23 +337,30 @@ def validate_invoices (df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
             ("student name", student_name),
         ]:
             if val is None:
-                errors.append(_quarantine_entry(
+                row_reasons.append(_quarantine_entry(
                     row_num, raw,
                     "MISSING_REQUIRED_FIELD", f"Field '{field}' is blank or null (row {row_num})",
                 ))
 
         if invoice_date is None:
-            errors.append(_date_error("invoice date", raw_date, row_num, raw))
+            row_reasons.append(_date_error("invoice date", raw_date, row_num, raw))
 
         if amount is None:
-            errors.append(_numeric_error("amount", raw_amount, row_num, raw))
+            row_reasons.append(_numeric_error("amount", raw_amount, row_num, raw))
 
         if status is None:
-            errors.append(_status_error(
+            row_reasons.append(_status_error(
                 "payment status", raw_status, row_num, raw, CANONICAL_STATUS["invoice"]))
 
-        if errors:
-            quarantine.extend(errors)
+        if row_reasons:
+            reason_code = "MULTIPLE_ISSUES" if len(row_reasons) > 1 else row_reasons[0]["reason_code"]
+            reason_detail = " | ".join(r["reason_detail"] for r in row_reasons)
+            combined_entries = {
+                **row_reasons[0],  
+                "reason_code": reason_code,
+                "reason_detail": reason_detail
+            }
+            quarantine.extend([combined_entries])
         else:
             clean_rows.append({
                 "row_number": row_num,
