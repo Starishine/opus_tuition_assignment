@@ -21,6 +21,7 @@ def validate_file_type(path: str | Path) -> str:
     logger.info(f"Detecting file type for: {path}")
     if suffix not in ['.csv', '.xlsx']:
         raise ValueError(f"Unsupported file type: {suffix}. Only .csv and .xlsx are supported.")
+    return suffix
 
 # Generate a hash of the file contents for caching and change detection
 def generate_file_hash(path: str | Path) -> str:

@@ -56,7 +56,7 @@ def _write_intermediate(clean_df: pd.DataFrame, quarantine: list[dict], file_typ
     logger.info(
         "Intermediate output written",
         extra={
-            "stage":      "pipeline",
+            "stage": "pipeline",
             "clean_file": str(clean_path),
             "quar_file":  str(quar_path),
         },

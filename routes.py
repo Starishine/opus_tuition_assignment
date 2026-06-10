@@ -12,7 +12,6 @@ from fastapi import APIRouter, FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pipeline import run_pipeline
 
-logger = logging.getLogger("data_pipeline.routes")
 app = FastAPI(title = "Data Pipeline API")
 
 import logging
@@ -28,14 +27,23 @@ log_dir = Path("logs")
 log_dir.mkdir(parents=True, exist_ok=True) # Create logs directory if it doesn't exist
 log_file = log_dir / "pipeline.log"
 
-# Configure logging to write to file and console with JSON format
-logging.basicConfig(level=logging.INFO)
+# Clear any default handlers to avoid duplicate logs
+logging.getLogger().handlers.clear()
+
+# Configure the root logger and set level
 logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# Create the file handler N
 handler = logging.FileHandler(log_file)
-formatter = jsonlogger.JsonFormatter()
+
+# Set up standard log format with timestamp, level, name and message
+format_str = "%(asctime)s %(levelname)s %(name)s %(message)s"
+formatter = jsonlogger.JsonFormatter(format_str)
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+logger = logging.getLogger("data_pipeline.routes")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -73,6 +81,7 @@ async def upload_file(file: UploadFile = File(...)):
         )
 
     except ValueError as e:
+        logger.error(f"Value error for upload_id {upload_id}: {e}", exc_info=True)
         error_msg = str(e)
         if "Unsupported file type" in error_msg:
             raise HTTPException(status_code=422, detail={
@@ -85,10 +94,11 @@ async def upload_file(file: UploadFile = File(...)):
             "message": error_msg
         })
     except HTTPException:
+        logger.warning(f"HTTPException raised for upload_id {upload_id}: {e.detail}")
         # Allow our custom 409 (or other HTTP exceptions) to pass through cleanly
         raise
     except Exception as e:
-        logger.error(f"Unexpected pipeline failure: {e}", exc_info=True)
+        logger.error(f"Unexpected pipeline failure for upload_id {upload_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail={
             "error": "INTERNAL_ERROR",
             "message": "Pipeline failed unexpectedly. Check server logs."
@@ -122,8 +132,11 @@ async def upload_file(file: UploadFile = File(...)):
 @app.get("/all_uploads")
 def list_uploads():
     try: 
-        return {"uploads": get_all_uploads()} 
+        uploads = get_all_uploads()
+        logger.info(f"Retrieved all uploads. Count: {len(uploads)}")
+        return {"uploads": uploads} 
     except Exception as e:
+        logger.error(f"Error occurred while retrieving uploads: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail={
             "error": "DATABASE_ERROR",
             "message": str(e)
@@ -134,12 +147,15 @@ def list_uploads():
 def get_report_by_id(upload_id: str): 
     try: 
         report = get_report_by_upload_id(upload_id)
+        logger.info(f"Retrieved report for upload_id: {upload_id}")
     except Exception as e:
+        logger.error(f"Error occurred while retrieving report for upload_id {upload_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail={
             "error": "DATABASE_ERROR",
             "message": str(e)
             })
     if not report:
+        logger.warning(f"No report found for upload_id: {upload_id}")
         raise HTTPException(status_code=404, detail={
             "error": "NOT_FOUND",
             "message": f"No report found for upload_id: {upload_id}"
@@ -150,14 +166,17 @@ def get_report_by_id(upload_id: str):
 def api_get_records(file_type: str, upload_id: str = None, date_from: str = None, date_to: str = None):
     valid_file_types = ["tutor_assignments", "lesson_logs", "invoice"]
     if file_type not in valid_file_types:
+        logger.warning(f"Invalid file_type parameter: {file_type}")
         raise HTTPException(status_code=400, detail={
             "error": "INVALID_FILE_TYPE",
             "message": f"Invalid file type. Must be one of: {', '.join(valid_file_types)}"
         })
     try:
         records = get_records(file_type, upload_id, date_from, date_to)
+        logger.info(f"Retrieved records for file_type: {file_type}, upload_id: {upload_id}, date_from: {date_from}, date_to: {date_to}. Count: {len(records)}")
         return {"file_type": file_type, "count": len(records), "records": records}
     except Exception as e:
+        logger.error(f"Error occurred while retrieving records: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail={
             "error": "DATABASE_ERROR",
             "message": str(e)
@@ -167,8 +186,10 @@ def api_get_records(file_type: str, upload_id: str = None, date_from: str = None
 def get_quarantine(upload_id: str):
     try:
         records = get_quarantine(upload_id)
+        logger.info(f"Retrieved quarantine records for upload_id: {upload_id}. Count: {len(records)}")
         return {"count": len(records), "quarantine": records}
     except Exception as e:
+        logger.error(f"Error occurred while retrieving quarantine records for upload_id {upload_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail={
             "error": "DATABASE_ERROR",
             "message": str(e)
@@ -178,18 +199,22 @@ def get_quarantine(upload_id: str):
 def delete_upload(upload_id: str):
     try:
         record = delete_upload_api(upload_id)
+        logger.info(f"Deleted upload record for upload_id: {upload_id}")
         if not record:
+            logger.warning(f"No upload found to delete with id: {upload_id}")
             raise HTTPException(status_code=404, detail={
                 "error": "NOT_FOUND",
                 "message": f"No upload found with id '{upload_id}'"
             })
     except ValueError as e:
+        logger.error(f"Error occurred while deleting upload {upload_id}: {e}", exc_info=True)
         if "DEPENDENCY_ERROR" in str(e):
             raise HTTPException(status_code=400, detail={
                 "error": "DEPENDENCY_ERROR",
                 "message": str(e)
             })
         else:
+            logger.error(f"Unexpected error occurred while deleting upload {upload_id}: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail={
                 "error": "DATABASE_ERROR",
                 "message": str(e)
