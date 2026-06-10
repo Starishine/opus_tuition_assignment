@@ -455,9 +455,46 @@ def get_quarantine(upload_id: str) -> list[dict]:
 def delete_upload_api(upload_id: str): 
     conn = get_connection()
     cur = conn.cursor()
-    tables = ["assignments", "lessons", "invoices", "quarantine", "uploads"]
-    for table in tables:
-        cur.execute(f"""DELETE FROM {table} WHERE upload_id = %s""", (upload_id,))
+    TABLE_MAP = {
+            "tutor_assignments": "assignments",
+            "lesson_logs": "lessons", 
+            "invoice": "invoices",
+        }
+    
+    cur.execute("""SELECT file_type FROM uploads WHERE upload_id = %s""", (upload_id,))
+    row = cur.fetchone()
+    if not row:
+        return False
+    file_type = row[0]
+    table_name = TABLE_MAP.get(file_type)
+
+    if table_name == "assignments":
+        # Check if any lessons or invoices are linked to this assignment
+        cur.execute("""
+            SELECT COUNT(*) FROM lessons WHERE assignment_id IN (
+                SELECT source_id FROM assignments WHERE upload_id = %s
+            )
+        """, (upload_id,))
+        linked_lessons = cur.fetchone()[0]
+        cur.execute("""
+            SELECT COUNT(*) FROM invoices WHERE assignment_id IN (
+                SELECT source_id FROM assignments WHERE upload_id = %s
+            )
+        """, (upload_id,))
+        linked_invoices = cur.fetchone()[0]
+
+        if linked_lessons > 0 or linked_invoices > 0:
+            # We raise a specific ValueError so the route can catch it easily
+                raise ValueError(
+                    f"DEPENDENCY_ERROR: Cannot delete this assignments file. "
+                    f"It is currently linked to {linked_lessons} lesson(s) and {linked_invoices} invoice(s). "
+                    f"Please delete the dependent Lesson Logs and Invoices files first."
+                )
+    if table_name:
+        cur.execute(f"""DELETE FROM {table_name} WHERE upload_id = %s""", (upload_id,))
+    cur.execute("""DELETE FROM quarantine WHERE upload_id = %s""", (upload_id,))
+    cur.execute("""DELETE FROM uploads WHERE upload_id = %s""", (upload_id,))
+
     deleted = cur.rowcount > 0 
     conn.commit()
     return deleted

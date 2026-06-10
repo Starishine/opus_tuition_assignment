@@ -179,13 +179,20 @@ def get_quarantine(upload_id: str):
 def delete_upload(upload_id: str):
     try:
         record = delete_upload_api(upload_id)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={
-            "error": "DATABASE_ERROR", "message": str(e)
-        })
-    if not record:
-        raise HTTPException(status_code=404, detail={
-            "error": "NOT_FOUND",
-            "message": f"No upload found with id '{upload_id}'"
-        })
+        if not record:
+            raise HTTPException(status_code=404, detail={
+                "error": "NOT_FOUND",
+                "message": f"No upload found with id '{upload_id}'"
+            })
+    except ValueError as e:
+        if "DEPENDENCY_ERROR" in str(e):
+            raise HTTPException(status_code=400, detail={
+                "error": "DEPENDENCY_ERROR",
+                "message": str(e)
+            })
+        else:
+            raise HTTPException(status_code=500, detail={
+                "error": "DATABASE_ERROR",
+                "message": str(e)
+            })
     return {"deleted": upload_id}

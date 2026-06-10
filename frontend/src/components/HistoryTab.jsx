@@ -70,12 +70,21 @@ export default function HistoryTab() {
     async function handleDelete(upload_id) {
         if (!window.confirm(`Delete upload ${upload_id}? This cannot be undone.`))
             return;
-
-        await fetch(`${API}/delete/${upload_id}`, { method: "DELETE" });
-        fetchUploads();
-        if (expanded === upload_id) {
-            setExpanded(null); setReport(null);
+        try {
+            const res = await fetch(`${API}/delete/${upload_id}`, { method: "DELETE" });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.detail?.message || `Failed to delete upload ${upload_id}`);
+            }
+            fetchUploads();
+            if (expanded === upload_id) {
+                setExpanded(null);
+                setReport(null);
+            }
+        } catch (err) {
+            window.alert(`Error deleting upload: ${err.message}`);
         }
+
     }
 
     if (loading) return <div className="loading-state"><Loader2 className="spin icon-large" /></div>;
