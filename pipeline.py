@@ -101,7 +101,7 @@ def run_pipeline(path: str | Path, upload_id: str, output_fmt: str = "json") -> 
     validator_fn = VALIDATORS.get(file_type)
     if not validator_fn:
         raise ValueError(
-            f"No validator registered for file type '{file_type}'. "
+            f"No validator registered for file type '{file_type}'"
             f"Known types: {list(VALIDATORS.keys())}"
         )
     clean_df, quarantine = validator_fn(df_raw)

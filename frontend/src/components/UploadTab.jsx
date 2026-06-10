@@ -50,26 +50,33 @@ export default function UploadTab({ onUploadComplete }) {
             // Safely check for JSON
             const isJson = res.headers.get("content-type")?.includes("application/json");
             const data = isJson ? await res.json() : null;
+            console.log(data);
 
             if (!res.ok) {
-                let errorMessage = "An unexpected error occurred on the server.";
+                let errorObj = { title: "Upload Failed", message: "An unexpected error occurred on the server." };
 
-                if (data?.detail?.message) {
-                    errorMessage = data.detail.message;
+                if (data?.detail?.error && data?.detail?.message) {
+                    // Replaces underscores with spaces for a cleaner title (e.g., "UNSUPPORTED FILE TYPE")
+                    errorObj.title = data.detail.error.replace(/_/g, " ");
+                    errorObj.message = data.detail.message;
                 } else if (typeof data?.detail === "string") {
-                    errorMessage = data.detail;
+                    errorObj.message = data.detail;
                 } else if (!isJson) {
-                    errorMessage = `Server Error ${res.status}: ${res.statusText}. Is the backend running?`;
+                    errorObj.message = `Server Error ${res.status}: ${res.statusText}. Is the backend running?`;
                 }
 
-                throw new Error(errorMessage);
+                setError(errorObj);
+                return; // Exit early, the finally block will still run to clear loading state
             }
 
             setResult(data);
             onUploadComplete?.();
 
         } catch (err) {
-            setError(err.message || String(err));
+            setError({
+                title: "Network Error",
+                message: err.message || "Failed to connect to the server."
+            });
         } finally {
             setLoading(false);
             setIsDragging(false);
@@ -114,8 +121,10 @@ export default function UploadTab({ onUploadComplete }) {
                 <div className="alert error">
                     <AlertCircle className="icon-normal" />
                     <div className="alert-content">
-                        <strong>Upload Failed</strong>
-                        <p>{error}</p>
+                        <strong style={{ textTransform: "capitalize" }}>
+                            {error.title || "Upload Failed"}
+                        </strong>
+                        <p>{error.message || error}</p>
                     </div>
                 </div>
             )}

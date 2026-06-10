@@ -45,14 +45,8 @@ app.add_middleware(
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
-    if not file.filename.endswith((".xlsx", ".csv")):
-        raise HTTPException(status_code=422, detail={
-            "error": "UNSUPPORTED_FILE_TYPE",
-            "message": "Only .xlsx and .csv files are accepted"
-        })
-
     upload_id = str(uuid.uuid4())
-    suffix = ".xlsx" if file.filename.endswith(".xlsx") else ".csv"
+    suffix = Path(file.filename).suffix.lower()
 
     # Save the uploaded file to a temporary location for processing.
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -79,11 +73,16 @@ async def upload_file(file: UploadFile = File(...)):
         )
 
     except ValueError as e:
-        # Cleanly catches ValueErrors from both run_pipeline AND insert_uploads
+        error_msg = str(e)
+        if "Unsupported file type" in error_msg:
+            raise HTTPException(status_code=422, detail={
+                "error": "UNSUPPORTED_FILE_TYPE",
+                "message": "Only .xlsx and .csv files are accepted"
+            })
         error_type = "DEPENDENCY_ERROR" if "DEPENDENCY_ERROR" in str(e) else "PIPELINE_ERROR"
         raise HTTPException(status_code=422, detail={
             "error": error_type,
-            "message": str(e)
+            "message": error_msg
         })
     except HTTPException:
         # Allow our custom 409 (or other HTTP exceptions) to pass through cleanly

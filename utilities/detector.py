@@ -126,6 +126,7 @@ def detect_header_row(path: str | Path, threshold: float = 0.5,
         file_name = Path(path).name.lower()
 
         # remove spaces, underscores, and dashes for more matching
+        found_name_match = False
         stripped_name = re.sub(r"[\s_-]+", "", file_name)
         for file_type in EXPECTED_COLUMNS.keys():
             stripped_file_type = re.sub(r"[\s_-]+", "", file_type)
@@ -134,8 +135,11 @@ def detect_header_row(path: str | Path, threshold: float = 0.5,
                 insert_header(path, file_type)
                 best_file_type = file_type
                 best_row_idx = 0
+                found_name_match = True
                 break
         
+        if not found_name_match:
+            raise ValueError(f"Invalid file. Expected one of: {', '.join(EXPECTED_COLUMNS.keys())}.") 
     logger.info(
         "Header detected (threshold met, secondary check skipped)",
         extra={
