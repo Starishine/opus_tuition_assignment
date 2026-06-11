@@ -12,6 +12,7 @@ A FastAPI backend pipeline that ingests messy Excel and CSV files, detects struc
 - **Deduplication** — detects exact and alias duplicates across uploads
 - **Quarantine** — invalid rows are stored with reason codes, not silently dropped
 - **Partial failure** — valid rows are always stored even when other rows in the same file fail
+- **Database storage** - valid rows are then saved to the database securely 
 
 Supports three file types: `tutor_assignments`, `lesson_logs`, `invoice`.
 
@@ -65,6 +66,7 @@ No set up required. Everything is set up for you.
 | | Link |
 |---|---|
 | **Frontend UI** | https://opus-tuition-assignment.vercel.app/ |
+| **FAST API** | https://opus-tuition-assignment.onrender.com/docs |
 | **Database** | Supabase — access invitation sent via email |
 
 > To access the intermediate files, visit supabase dashboard, navigate to Sania's Project and on the left menus bar, go to storage and click on 'pipeline-data-outputs'
