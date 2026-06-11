@@ -132,7 +132,7 @@ def insert_assignments(cur, upload_id, df):
 
         cur.execute ("""
         INSERT INTO assignments (source_id, upload_id, tutor_id, student_id, subject, start_date, hourly_rate, status)
-        VALUES ON CONFLICT(tutor_id, student_id, subject, start_date) DO UPDATE SET
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT(tutor_id, student_id, subject, start_date) DO UPDATE SET
             source_id = EXCLUDED.source_id,
             upload_id = EXCLUDED.upload_id,
             hourly_rate = EXCLUDED.hourly_rate,
