@@ -47,16 +47,12 @@ formatter = jsonlogger.JsonFormatter(format_str)
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-origins = [
-    "http://localhost:5173",  # Local Vite dev server
-    "http://localhost:8000",  # FastAPI server (if accessed directly)
-    "https://opus-tuition-assignment.vercel.app/"  # Deployed frontend
-]
+
 logger = logging.getLogger("data_pipeline.routes")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
