@@ -72,10 +72,7 @@ async def upload_file(file: UploadFile = File(...)):
         tmp_path = tmp.name
 
     try:
-        # 1. Run the data pipeline on the uploaded file.
-        result = run_pipeline(tmp_path, upload_id)
-
-        # 2. Check for exact file duplicates
+        # 1. Check for exact file duplicates using hash comparison before processing
         existing_upload_id = check_duplicate_hash(result.get("file_hash"))
         if existing_upload_id: 
             raise HTTPException(status_code=409, detail={
@@ -83,6 +80,10 @@ async def upload_file(file: UploadFile = File(...)):
                 "message": f"This file has already been uploaded with upload_id: {existing_upload_id}",
                 "original_upload_id": existing_upload_id
             })
+        
+        # 2. Run the data pipeline on the new uploaded file.
+        result = run_pipeline(tmp_path, upload_id)
+        
         # 3. Insert into database 
         final_response  = insert_uploads (
             upload_id = upload_id,

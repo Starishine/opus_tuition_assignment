@@ -43,8 +43,8 @@ def _write_intermediate(clean_df: pd.DataFrame, quarantine: list[dict], file_typ
         bucket_name = "pipeline-data-outputs"
 
         # Convert Dataframe to JSON string, and encode to bytes for upload
-        clean_bytes = clean_df.to_json(orient="records", date_format="iso").encode('utf-8')
-        quarantine_bytes = json.dumps(quarantine, default=str).encode('utf-8')
+        clean_bytes = clean_df.to_json(orient="records", date_format="iso", indent=2).encode('utf-8')
+        quarantine_bytes = json.dumps(quarantine, default=str, indent=2).encode('utf-8')
 
         # Upload Clean Data
         supabase.storage.from_(bucket_name).upload(
