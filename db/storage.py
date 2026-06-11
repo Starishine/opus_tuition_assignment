@@ -12,7 +12,7 @@ import psycopg2.extras
 from dotenv import load_dotenv
 import pandas as pd
 
-load_dotenv()
+load_dotenv(override=True)
 logger = logging.getLogger("data_pipeline.storage")
 
 TABLE_MAP = {

@@ -93,7 +93,7 @@ async def upload_file(file: UploadFile = File(...)):
             "error": error_type,
             "message": error_msg
         })
-    except HTTPException:
+    except HTTPException as e:
         logger.warning(f"HTTPException raised for upload_id {upload_id}: {e.detail}")
         # Allow our custom 409 (or other HTTP exceptions) to pass through cleanly
         raise
