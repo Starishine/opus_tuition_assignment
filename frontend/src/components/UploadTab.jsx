@@ -14,7 +14,7 @@ import {
 import QuarantineTable from "./QuarantineTable";
 import "../App.css";
 
-const API = "http://localhost:8000";
+import API from "../api";
 
 function MetricCard({ label, value, className = "" }) {
     return (

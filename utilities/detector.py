@@ -79,9 +79,6 @@ def _next_row_looks_like_data(df_raw: pd.DataFrame, row_idx: int) -> bool:
             return True
     return False
 
-
-# Public API 
-
 def detect_header_row(path: str | Path, threshold: float = 0.5, 
                       max_scan_rows: int = 30) -> tuple[int, str]:
     if Path(path).suffix.lower() == '.xlsx':

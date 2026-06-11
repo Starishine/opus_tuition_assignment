@@ -13,7 +13,7 @@ import {
 import "../App.css";
 import QuarantineTable from "./QuarantineTable";
 
-const API = "http://localhost:8000";
+import API from "../api";
 
 // Helper functions and components
 function MetricCard({ label, value, className = "" }) {

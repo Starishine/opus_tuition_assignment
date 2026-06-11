@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import "../App.css";
 
-const API = "http://localhost:8000";
+import API from "../api";
 
 // ── Records Tab ────────────────────────────────────────────────────────────
 
