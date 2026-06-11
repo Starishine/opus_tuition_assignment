@@ -34,7 +34,7 @@ supabase: Client = create_client(url, key) if url and key else None
 # Returns a dict of {"clean": Path, "quarantine": Path}.
 # Supports fmt="json" or fmt="csv"
 def _write_intermediate(clean_df: pd.DataFrame, quarantine: list[dict], file_type: str,
-                        upload_id: str, fmt: str = "json") -> dict[str, Path]:
+                        upload_id: str, fmt: str = "json") -> dict[str, str]:
     clean_filename = f"{upload_id}_{file_type}_clean.{fmt}"
     quarantine_filename  = f"{upload_id}_{file_type}_quarantine.{fmt}"
     
