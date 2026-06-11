@@ -119,7 +119,6 @@ def insert_uploads(upload_id: str, file_name: str, result: dict) -> tuple[str, s
 
 
 def insert_assignments(cur, upload_id, df):
-    print(df)
     records = df.to_dict(orient="records")
     for row in records:
         row = {k: (None if pd.isna(v) else v) for k, v in row.items()}
@@ -184,7 +183,6 @@ def insert_lessons(cur, upload_id, df) -> list[dict]:
     records = df.to_dict(orient="records")
     for row in records:
         row = {k: (None if pd.isna(v) else v) for k, v in row.items()}
-        print(row)
         source_id = row.get("lesson_id")
         assignment_id = row.get("assignment_id")
         date = row.get("date")
@@ -235,7 +233,6 @@ def insert_invoices(cur, upload_id, df) -> list[dict]:
         )
     
     late_quarantine = []
-    print(df)
     records = df.to_dict(orient="records")
     for row in records:
         row = {k: (None if pd.isna(v) else v) for k, v in row.items()}

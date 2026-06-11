@@ -40,7 +40,6 @@ def print_file_content(path: str | Path) -> None:
     else:
         raise ValueError(f"Unsupported file type: {suffix}. Only .csv and .xlsx are supported.")
     
-    print(df.head())
 
 ## Detecting headers
 
@@ -52,11 +51,9 @@ def _score_row_as_header(row: pd.Series, expected: list[str]) -> float:
         for v in row
         if pd.notna(v) and str(v).strip() != ""
     ]
-    print(f"Scoring row: {cells} against expected: {expected}")
     if not cells:
         return 0.0
     matched = sum(1 for c in cells if c in expected)
-    print(f"Matched: {matched}")
     return matched / len(cells)
  
 # Sanity check to avoid picking a decorative title row that happens to contain column-name-like words.
@@ -93,7 +90,6 @@ def detect_header_row(path: str | Path, threshold: float = 0.5,
         row = df_raw.iloc[row_idx]
         for file_type, expected_cols in EXPECTED_COLUMNS.items():
             score = _score_row_as_header(row, expected_cols)
-            print(f"Row{row_idx} vs {file_type}: {score}")
             if score > best_score:
                 best_score = score
                 best_row_idx = row_idx

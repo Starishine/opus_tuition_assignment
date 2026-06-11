@@ -36,14 +36,12 @@ def detect_duplicates(df:pd.DataFrame, file_type:str) -> tuple[pd.DataFrame, lis
 
     quarantine_entries: list[dict] = []
     for _, dup_row in dup_df.iterrows():
-        print("Duplicate detected:", dup_row[present_keys].to_dict())
 
         # Safely extract the hidden metadata - row_number and raw_data - that we attached in the validator. If these keys are missing, we can still quarantine the duplicate based on the key column values, but we'll log a warning since it may make troubleshooting harder.
         row_num = dup_row.get("row_number", None)
         raw_dict = dup_row.get("raw_data", None)
 
         canonical_rows = unique_df[(unique_df[present_keys] == dup_row[present_keys]).all(axis=1)]
-        print("Canonical row(s) for this duplicate:", canonical_rows[present_keys].to_dict(orient="records") if not canonical_rows.empty else "No canonical row found")
         alias_id = dup_row.get(source_id_mapping, None)
         canonical_id = canonical_rows.iloc[0].get(source_id_mapping, None) if not canonical_rows.empty else None
         # Fallback : use cleaned row but strip NaN values

@@ -3,6 +3,7 @@
 # - Define routes for the data pipeline.
 # - Each route corresponds to a specific validation or transformation step.
 
+import sys
 import uuid
 import logging
 import tempfile
@@ -47,6 +48,9 @@ formatter = jsonlogger.JsonFormatter(format_str)
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
 logger = logging.getLogger("data_pipeline.routes")
 app.add_middleware(
