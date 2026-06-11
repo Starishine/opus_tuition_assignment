@@ -13,7 +13,9 @@ so there is always an inspectable artefact even if storage fails.
 
 import json
 import logging
+import os
 from pathlib import Path
+from supabase import create_client, Client
 
 import pandas as pd
 
@@ -23,45 +25,72 @@ from utilities.deduplicator import detect_duplicates
 
 logger = logging.getLogger("data_pipeline.pipeline")
 
-# Directory for intermediate outputs (created if missing)
-OUTPUT_DIR = Path("docs/sample-outputs")
+url = os.getenv("SUPABASE_URL")
+key = os.getenv("SUPABASE_SERVICE_KEY")
+supabase: Client = create_client(url, key) if url and key else None
+
 
 # Write clean rows and quarantine entries to disk before the DB write.
 # Returns a dict of {"clean": Path, "quarantine": Path}.
 # Supports fmt="json" or fmt="csv"
 def _write_intermediate(clean_df: pd.DataFrame, quarantine: list[dict], file_type: str,
                         upload_id: str, fmt: str = "json") -> dict[str, Path]:
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    paths: dict[str, Path] = {}
+    clean_filename = f"{upload_id}_{file_type}_clean.{fmt}"
+    quarantine_filename  = f"{upload_id}_{file_type}_quarantine.{fmt}"
+    
+    # Production code 
+    if os.getenv("RENDER"): 
+        bucket_name = "pipeline-data-outputs"
 
-    clean_path = OUTPUT_DIR / f"{upload_id}_{file_type}_clean.{fmt}"
-    quar_path  = OUTPUT_DIR / f"{upload_id}_{file_type}_quarantine.{fmt}"
+        # Convert Dataframe to JSON string, and encode to bytes for upload
+        clean_bytes = clean_df.to_json(orient="records", date_format="iso").encode('utf-8')
+        quarantine_bytes = json.dumps(quarantine, default=str).encode('utf-8')
 
-    if fmt == "csv":
-        clean_df.to_csv(clean_path, index=False)
-        pd.DataFrame(quarantine).to_csv(quar_path, index=False)
-    else:
-        clean_path.write_text(
-            clean_df.to_json(orient="records", date_format="iso", indent=2),
-            encoding="utf-8",
-        )
-        quar_path.write_text(
-            json.dumps(quarantine, indent=2, default=str),
-            encoding="utf-8",
-        )
+        # Upload Clean Data
+        supabase.storage.from_(bucket_name).upload(file=clean_bytes, path=clean_filename, content_type="application/json")
+        clean_url = supabase.storage.from_(bucket_name).get_public_url(clean_filename)
 
-    paths["clean"] = clean_path
-    paths["quarantine"] = quar_path
+        # Upload Quarantine Data
+        supabase.storage.from_(bucket_name).upload(file=quarantine_bytes, path=quarantine_filename, content_type="application/json")
+        quarantine_url = supabase.storage.from_(bucket_name).get_public_url(quarantine_filename)
+
+        return {
+            "clean_path": clean_url,
+            "quarantine_path": quarantine_url
+        }
+    else: 
+        # Directory for intermediate outputs (created if missing)
+        OUTPUT_DIR = Path("docs/sample-outputs")
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    
+        clean_path = OUTPUT_DIR / clean_filename
+        quarantine_path = OUTPUT_DIR / quarantine_filename
+
+        if fmt == "csv":
+            clean_df.to_csv(clean_path, index=False)
+            pd.DataFrame(quarantine).to_csv(quarantine_path, index=False)
+        else:
+            clean_path.write_text(
+                clean_df.to_json(orient="records", date_format="iso", indent=2),
+                encoding="utf-8",
+            )
+            quarantine_path.write_text(
+                json.dumps(quarantine, indent=2, default=str),
+                encoding="utf-8",
+            )
 
     logger.info(
         "Intermediate output written",
         extra={
             "stage": "pipeline",
             "clean_file": str(clean_path),
-            "quar_file":  str(quar_path),
+            "quar_file":  str(quarantine_path),
         },
     )
-    return paths
+    return {
+            "clean_path": str(clean_path),
+            "quarantine_path": str(quarantine_path)
+        }
 
 # Run the full ingestion pipeline for a single file.
 
