@@ -12,6 +12,7 @@ import shutil
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pipeline import run_pipeline
+from utilities.detector import generate_file_hash
 
 app = FastAPI(
     title="Opus Tuition Pipeline API",
@@ -73,7 +74,8 @@ async def upload_file(file: UploadFile = File(...)):
 
     try:
         # 1. Check for exact file duplicates using hash comparison before processing
-        existing_upload_id = check_duplicate_hash(result.get("file_hash"))
+        file_hash = generate_file_hash(tmp_path)
+        existing_upload_id = check_duplicate_hash(file_hash)
         if existing_upload_id: 
             raise HTTPException(status_code=409, detail={
                 "error": "DUPLICATE_FILE",
@@ -82,7 +84,7 @@ async def upload_file(file: UploadFile = File(...)):
             })
         
         # 2. Run the data pipeline on the new uploaded file.
-        result = run_pipeline(tmp_path, upload_id)
+        result = run_pipeline(tmp_path, upload_id, file_hash)
         
         # 3. Insert into database 
         final_response  = insert_uploads (

@@ -114,10 +114,9 @@ def _write_intermediate(clean_df: pd.DataFrame, quarantine: list[dict], file_typ
 # }
 
 # Raises ValueError — unsupported file type, unknown file type after detection
-def run_pipeline(path: str | Path, upload_id: str, output_fmt: str = "json") -> dict:
+def run_pipeline(path: str | Path, upload_id: str, file_hash: str, output_fmt: str = "json") -> dict:
 
     validate_file_type(path)
-    file_hash = generate_file_hash(path)
 
     logger.info(
         "Pipeline start",
