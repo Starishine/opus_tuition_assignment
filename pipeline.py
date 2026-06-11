@@ -47,11 +47,13 @@ def _write_intermediate(clean_df: pd.DataFrame, quarantine: list[dict], file_typ
         quarantine_bytes = json.dumps(quarantine, default=str).encode('utf-8')
 
         # Upload Clean Data
-        supabase.storage.from_(bucket_name).upload(file=clean_bytes, path=clean_filename, content_type="application/json")
+        supabase.storage.from_(bucket_name).upload(
+            file=clean_bytes, path=clean_filename, file_options={"content-type": "application/json"})
         clean_url = supabase.storage.from_(bucket_name).get_public_url(clean_filename)
 
         # Upload Quarantine Data
-        supabase.storage.from_(bucket_name).upload(file=quarantine_bytes, path=quarantine_filename, content_type="application/json")
+        supabase.storage.from_(bucket_name).upload(
+            file=quarantine_bytes, path=quarantine_filename, file_options={"content-type": "application/json"})
         quarantine_url = supabase.storage.from_(bucket_name).get_public_url(quarantine_filename)
 
         return {
