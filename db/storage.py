@@ -132,7 +132,11 @@ def insert_assignments(cur, upload_id, df):
 
         cur.execute ("""
         INSERT INTO assignments (source_id, upload_id, tutor_id, student_id, subject, start_date, hourly_rate, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES ON CONFLICT(tutor_id, student_id, subject, start_date) DO UPDATE SET
+            source_id = EXCLUDED.source_id,
+            upload_id = EXCLUDED.upload_id,
+            hourly_rate = EXCLUDED.hourly_rate,
+            status = EXCLUDED.status
         """, (
             source_id,
             upload_id,
@@ -152,7 +156,9 @@ def get_or_create_tutor(cur, tutor_name, tutor_email):
         return row[0]
     else:
         cur.execute(
-            """INSERT INTO tutors (tutor_name, tutor_email) VALUES (%s, %s) RETURNING tutor_id""",
+            """INSERT INTO tutors (tutor_name, tutor_email) VALUES (%s, %s) 
+            ON CONFLICT (tutor_name, tutor_email) DO UPDATE SET tutor_email = EXCLUDED.tutor_email
+            RETURNING tutor_id""",
             (tutor_name, tutor_email)
         )
         return cur.fetchone()[0]
@@ -164,7 +170,9 @@ def get_or_create_student(cur, student_name, level):
         return row[0]
     else:
         cur.execute(
-            """INSERT INTO students (student_name, level) VALUES (%s, %s) RETURNING student_id""",
+            """INSERT INTO students (student_name, level) VALUES (%s, %s) 
+            ON CONFLICT (student_name) DO UPDATE SET level = EXCLUDED.level
+            RETURNING student_id""",
             (student_name, level)
         )
         return cur.fetchone()[0]
@@ -210,15 +218,14 @@ def insert_lessons(cur, upload_id, df) -> list[dict]:
 
         cur.execute ("""
         INSERT INTO lessons (source_id, upload_id, assignment_id, date, duration, attendance, notes)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (
-            source_id,
-            upload_id,
-            resolved_assignment_id,
-            date,
-            duration,
-            attendance,
-            notes
+        VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (assignment_id, date, duration) DO UPDATE SET
+            source_id = EXCLUDED.source_id,
+            upload_id = EXCLUDED.upload_id,
+            attendance = EXCLUDED.attendance,
+            notes = EXCLUDED.notes
+         """, (
+            source_id, upload_id, resolved_assignment_id, date, duration,
+            attendance, notes
          )) 
     return late_quarantine
         
@@ -277,7 +284,13 @@ def insert_invoices(cur, upload_id, df) -> list[dict]:
             continue
         cur.execute ("""
         INSERT INTO invoices (source_id, upload_id, assignment_id, student_id, invoice_date, payment_status, payment_date, notes)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (assignment_id, invoice_date, amount) DO UPDATE SET
+            source_id = EXCLUDED.source_id,
+            assignment_id = EXCLUDED.assignment_id,
+            student_id = EXCLUDED.student_id,
+            payment_status = EXCLUDED.payment_status,
+            payment_date = EXCLUDED.payment_date,
+            notes = EXCLUDED.notes
         """, (
             source_id,
             upload_id,
@@ -300,7 +313,10 @@ def insert_quarantine(cur, upload_id, file_type, quarantine):
         cur.execute("""
             INSERT INTO quarantine
                 (upload_id, file_type, row_number, reason_code, reason_detail, raw_data)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (upload_id, file_type, row_number) DO UPDATE SET
+                reason_code = EXCLUDED.reason_code,
+                reason_detail = EXCLUDED.reason_detail,
+                raw_data = EXCLUDED.raw_data
         """, (
             upload_id,
             file_type,
