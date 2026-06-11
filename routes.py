@@ -8,11 +8,15 @@ import logging
 import tempfile
 import shutil
 
-from fastapi import APIRouter, FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pipeline import run_pipeline
 
-app = FastAPI(title = "Data Pipeline API")
+app = FastAPI(
+    title="Opus Tuition Pipeline API",
+    docs_url="/docs",
+    openapi_url="/openapi.json" 
+)
 
 import logging
 from pythonjsonlogger import jsonlogger
@@ -46,7 +50,8 @@ logger.addHandler(handler)
 logger = logging.getLogger("data_pipeline.routes")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
