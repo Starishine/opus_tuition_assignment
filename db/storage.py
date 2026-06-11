@@ -171,7 +171,7 @@ def get_or_create_student(cur, student_name, level):
     else:
         cur.execute(
             """INSERT INTO students (student_name, level) VALUES (%s, %s) 
-            ON CONFLICT (student_name) DO UPDATE SET level = EXCLUDED.level
+            ON CONFLICT (student_name, level) DO UPDATE SET level = EXCLUDED.level
             RETURNING student_id""",
             (student_name, level)
         )

@@ -1,12 +1,13 @@
-DROP TABLE assignments; 
 DROP TABLE invoices; 
 DROP TABLE lessons; 
+DROP TABLE assignments; 
 DROP TABLE quarantine; 
 DROP TABLE students; 
 DROP TABLE tutors; 
 DROP TABLE uploads;
+DROP TABLE source_id_aliases
 
-
+-- schema.sql used for postgres setup 
 CREATE TABLE IF NOT EXISTS uploads (
     id SERIAL PRIMARY KEY,
     upload_id TEXT UNIQUE NOT NULL,
@@ -29,7 +30,8 @@ CREATE TABLE IF NOT EXISTS tutors (
 CREATE TABLE IF NOT EXISTS students (
     student_id SERIAL PRIMARY KEY,
     student_name TEXT NOT NULL,
-    level TEXT 
+    level TEXT,
+    UNIQUE(student_name, level)
 );
 
 CREATE TABLE IF NOT EXISTS assignments (
@@ -53,7 +55,8 @@ CREATE TABLE IF NOT EXISTS lessons (
     date DATE NOT NULL,
     duration FLOAT NOT NULL, 
     attendance TEXT NOT NULL, 
-    notes TEXT
+    notes TEXT,
+    UNIQUE(assignment_id, date, duration)
 );
 
 CREATE TABLE IF NOT EXISTS invoices (
@@ -65,7 +68,8 @@ CREATE TABLE IF NOT EXISTS invoices (
     invoice_date DATE NOT NULL,
     payment_status TEXT NOT NULL,
     payment_date DATE, 
-    notes TEXT
+    notes TEXT,
+    UNIQUE(assignment_id, invoice_date)
 );
 
 CREATE TABLE IF NOT EXISTS quarantine (
@@ -75,7 +79,8 @@ CREATE TABLE IF NOT EXISTS quarantine (
     row_number INT NOT NULL,
     reason_code TEXT NOT NULL,
     reason_detail TEXT NOT NULL,
-    raw_data JSONB 
+    raw_data JSONB,
+    UNIQUE(upload_id, file_type, row_number)
 );
 
 CREATE TABLE IF NOT EXISTS source_id_aliases (
