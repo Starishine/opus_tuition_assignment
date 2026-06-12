@@ -419,7 +419,7 @@ def get_records(file_type: str, upload_id: str = None, date_from: str = None, da
         base = """
             SELECT l.source_id AS lesson_id, l.upload_id,
                    l.assignment_id, l.date, l.duration,
-                   l.attendance, l.notes
+                   l.attendance, l.notes, l.fee
             FROM lessons l
         """
         date_col = "l.date"
