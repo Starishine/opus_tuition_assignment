@@ -3,6 +3,7 @@
 # - Define routes for the data pipeline.
 # - Each route corresponds to a specific validation or transformation step.
 
+import os
 import sys
 import uuid
 import logging
@@ -84,7 +85,7 @@ async def upload_file(file: UploadFile = File(...)):
             })
         
         # 2. Run the data pipeline on the new uploaded file.
-        result = run_pipeline(tmp_path, upload_id, file_hash)
+        result = run_pipeline(tmp_path, upload_id, file_hash, file.filename)
         
         # 3. Insert into database 
         final_response  = insert_uploads (
@@ -116,6 +117,10 @@ async def upload_file(file: UploadFile = File(...)):
             "error": "INTERNAL_ERROR",
             "message": "Pipeline failed unexpectedly. Check server logs."
         })
+    # Clean up the temp file 
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
         
     # If we made it here, the entire process succeeded!
     logger.info(

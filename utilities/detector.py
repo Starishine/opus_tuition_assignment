@@ -76,7 +76,7 @@ def _next_row_looks_like_data(df_raw: pd.DataFrame, row_idx: int) -> bool:
             return True
     return False
 
-def detect_header_row(path: str | Path, threshold: float = 0.5, 
+def detect_header_row(path: str | Path, original_filename: str, threshold: float = 0.5, 
                       max_scan_rows: int = 30) -> tuple[int, str]:
     if Path(path).suffix.lower() == '.xlsx':
         df_raw = pd.read_excel(path, header=None, nrows=max_scan_rows)
@@ -114,10 +114,11 @@ def detect_header_row(path: str | Path, threshold: float = 0.5,
             "stage": "structure_detection",
             "best_score": round(best_score, 2),
             "threshold": threshold,
+            "original_filename": original_filename,
             },
         )
 
-        file_name = Path(path).name.lower()
+        file_name = original_filename.lower()
 
         # remove spaces, underscores, and dashes for more matching
         found_name_match = False
@@ -163,8 +164,8 @@ def insert_header(path: str | Path, file_type: str) -> None:
     else:
         new_df.to_csv(path, index=False, header=False)
 
-def load_file(path:str | Path) -> tuple[pd.DataFrame, str]:
-    header_row, file_type = detect_header_row(path)
+def load_file(path:str | Path, original_filename: str) -> tuple[pd.DataFrame, str]:
+    header_row, file_type = detect_header_row(path, original_filename=original_filename)
 
     if Path(path).suffix.lower() == '.xlsx':
         df = pd.read_excel(path, header=header_row)

@@ -114,17 +114,17 @@ def _write_intermediate(clean_df: pd.DataFrame, quarantine: list[dict], file_typ
 # }
 
 # Raises ValueError — unsupported file type, unknown file type after detection
-def run_pipeline(path: str | Path, upload_id: str, file_hash: str, output_fmt: str = "json") -> dict:
+def run_pipeline(path: str | Path, upload_id: str, file_hash: str, original_filename: str, output_fmt: str = "json") -> dict:
 
     validate_file_type(path)
 
     logger.info(
         "Pipeline start",
-        extra={"stage": "pipeline", "file": str(path), "hash": file_hash, "upload_id": upload_id},
+        extra={"stage": "pipeline", "file": str(path), "hash": file_hash, "upload_id": upload_id, "original_filename": original_filename},
     )
 
     # Stage 1: detect structure + load
-    df_raw, file_type = load_file(path)
+    df_raw, file_type = load_file(path, original_filename)
     rows_received = len(df_raw)
 
     # Stage 2: validate (clean fields + enforce required + quarantine invalids)
