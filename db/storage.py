@@ -269,6 +269,7 @@ def insert_invoices(cur, upload_id, df) -> list[dict]:
         source_id = row.get("invoice_id")
         assignment_id = row.get("assignment_id")
         invoice_date = row.get("invoice_date")
+        amount = row.get("amount")
         payment_status = row.get("status")
         payment_date = row.get("payment_date")
         notes = row.get("notes")
@@ -290,14 +291,15 @@ def insert_invoices(cur, upload_id, df) -> list[dict]:
             })
             continue
         cur.execute ("""
-        INSERT INTO invoices (source_id, upload_id, assignment_id, student_id, invoice_date, payment_status, payment_date, notes)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (assignment_id, invoice_date, payment_status) DO NOTHING
+        INSERT INTO invoices (source_id, upload_id, assignment_id, student_id, invoice_date, amount, payment_status, payment_date, notes)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (assignment_id, invoice_date, payment_status) DO NOTHING
         """, (
             source_id,
             upload_id,
             resolved_assignment_id,
             student_id,
             invoice_date,
+            amount,
             payment_status,
             payment_date,
             notes
@@ -429,7 +431,7 @@ def get_records(file_type: str, upload_id: str = None, date_from: str = None, da
         base = """
             SELECT i.source_id AS invoice_id, i.upload_id,
                    i.assignment_id, s.student_name,
-                   i.invoice_date, i.payment_status, i.payment_date, i.notes
+                   i.invoice_date, i.amount, i.payment_status, i.payment_date, i.notes
             FROM invoices i
             JOIN students s ON s.student_id = i.student_id
         """

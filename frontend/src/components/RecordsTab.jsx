@@ -22,7 +22,7 @@ import API from "../api";
 const FILE_TYPE_COLS = {
     tutor_assignments: ["assignment_id", "tutor_name", "student_name", "subject", "level", "hourly_rate", "start_date", "status"],
     lesson_logs: ["lesson_id", "assignment_id", "date", "duration", "attendance", "notes", "fee"],
-    invoice: ["invoice_id", "assignment_id", "student_name", "invoice_date", "payment_status", "payment_date"],
+    invoice: ["invoice_id", "assignment_id", "student_name", "invoice_date", "amount", "payment_status", "payment_date"],
 };
 
 export default function RecordsTab() {

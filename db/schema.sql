@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     assignment_id TEXT NOT NULL REFERENCES assignments(source_id),
     student_id INTEGER NOT NULL REFERENCES students(student_id),
     invoice_date DATE NOT NULL,
+    amount FLOAT NOT NULL,
     payment_status TEXT NOT NULL,
     payment_date DATE, 
     notes TEXT,
