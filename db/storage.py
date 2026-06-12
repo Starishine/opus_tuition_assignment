@@ -216,16 +216,23 @@ def insert_lessons(cur, upload_id, df) -> list[dict]:
             })
             continue
 
+        # Fetch the hourly rate for this assignment to calculate the fee
+        cur.execute("""SELECT hourly_rate FROM assignments WHERE source_id = %s""", (resolved_assignment_id,))
+        hourly_rate = cur.fetchone()[0]
+
+        # Calculate the fee based on hourly_rate * duration if attendance is not "absent"
+        fee = hourly_rate * duration if attendance.lower() != "absent" else 0.0
         cur.execute ("""
-        INSERT INTO lessons (source_id, upload_id, assignment_id, date, duration, attendance, notes)
-        VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (assignment_id, date, duration) DO UPDATE SET
+        INSERT INTO lessons (source_id, upload_id, assignment_id, date, duration, attendance, notes, fee)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (assignment_id, date, duration) DO UPDATE SET
             source_id = EXCLUDED.source_id,
             upload_id = EXCLUDED.upload_id,
             attendance = EXCLUDED.attendance,
-            notes = EXCLUDED.notes
+            notes = EXCLUDED.notes,
+            fee = EXCLUDED.fee
          """, (
             source_id, upload_id, resolved_assignment_id, date, duration,
-            attendance, notes
+            attendance, notes, fee
          )) 
     return late_quarantine
         

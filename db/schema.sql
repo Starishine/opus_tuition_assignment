@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS lessons (
     duration FLOAT NOT NULL, 
     attendance TEXT NOT NULL, 
     notes TEXT,
+    fee FLOAT NOT NULL,
     UNIQUE(assignment_id, date, duration)
 );
 

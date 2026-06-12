@@ -17,7 +17,7 @@ import "../App.css";
 
 import API from "../api";
 
-// ── Records Tab ────────────────────────────────────────────────────────────
+// Records tab
 
 const FILE_TYPE_COLS = {
     tutor_assignments: ["assignment_id", "tutor_name", "student_name", "subject", "level", "hourly_rate", "start_date", "status"],
