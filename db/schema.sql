@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     payment_status TEXT NOT NULL,
     payment_date DATE, 
     notes TEXT,
-    UNIQUE(assignment_id, invoice_date)
+    UNIQUE(assignment_id, invoice_date, payment_status)
 );
 
 CREATE TABLE IF NOT EXISTS quarantine (

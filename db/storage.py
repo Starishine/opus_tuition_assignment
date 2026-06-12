@@ -284,13 +284,7 @@ def insert_invoices(cur, upload_id, df) -> list[dict]:
             continue
         cur.execute ("""
         INSERT INTO invoices (source_id, upload_id, assignment_id, student_id, invoice_date, payment_status, payment_date, notes)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (assignment_id, invoice_date) DO UPDATE SET
-            source_id = EXCLUDED.source_id,
-            assignment_id = EXCLUDED.assignment_id,
-            student_id = EXCLUDED.student_id,
-            payment_status = EXCLUDED.payment_status,
-            payment_date = EXCLUDED.payment_date,
-            notes = EXCLUDED.notes
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (assignment_id, invoice_date, payment_status) DO NOTHING
         """, (
             source_id,
             upload_id,
