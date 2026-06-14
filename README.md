@@ -64,7 +64,7 @@ Part 1 - https://drive.google.com/file/d/1oa7cb6m4YdBLefrZfM2uvDnO0t0Wq0st/view?
 Part 2 (Logs File) - https://drive.google.com/file/d/1FL8k3lQ8uq0NwXMGK9U8clO57Ceb040f/view?usp=sharing
 
 ## Running the application
-You have two options - use the live deployed link or run it locally
+You have two options - use the live deployed link or run it locally. Note: Please wait for the application to fully load (ie. let the history tab show no records yet) before uploading files
 
 ## Option 1 - Deployed Version (Recommended)
 No set up required. Everything is set up for you. 
