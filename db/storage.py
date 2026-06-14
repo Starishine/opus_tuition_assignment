@@ -250,24 +250,11 @@ def insert_invoices(cur, upload_id, df) -> list[dict]:
     records = df.to_dict(orient="records")
     for row in records:
         row = {k: (None if pd.isna(v) else v) for k, v in row.items()}
-        student_id = get_student_id(cur, row.get("student_name"))
-        raw_data = row.get("raw_data")
-        if student_id is None:
-            late_quarantine.append({
-                "row_number": row.get("row_number"),
-                "reason_code": "UNRESOLVED_STUDENT_NAME",
-                "reason_detail": (
-                    f"Student '{row.get('student_name')}' does not exist in the database. "
-                    f"The student may be referenced in the assignments file but that file has not "
-                    f"been uploaded yet, or the student row in the assignments file was quarantined "
-                    f"(e.g. missing required field). Upload or fix the assignments file first, then re-upload this file."
-                ),
-                "raw_data": raw_data,
-            })
-            continue
 
+        # Get all the fields from the clean df 
         source_id = row.get("invoice_id")
         assignment_id = row.get("assignment_id")
+        student_name = row.get("student_name")
         invoice_date = row.get("invoice_date")
         amount = row.get("amount")
         payment_status = row.get("status")
@@ -276,6 +263,7 @@ def insert_invoices(cur, upload_id, df) -> list[dict]:
         row_number = row.get("row_number")
         raw_data = row.get("raw_data")
 
+        # Resolve assignment id
         resolved_assignment_id = resolve_assignment_id(cur, assignment_id)
         if resolved_assignment_id is None:
             late_quarantine.append({
@@ -290,6 +278,25 @@ def insert_invoices(cur, upload_id, df) -> list[dict]:
                 "raw_data": raw_data,
             })
             continue
+        # Resolve student name to student_id
+        if student_name: 
+            student_id = get_student_id(cur, student_name)
+            if student_id is None:
+                late_quarantine.append({
+                    "row_number": row_number,
+                    "reason_code": "UNRESOLVED_STUDENT_NAME",
+                    "reason_detail": f"Student '{student_name}' does not exist in the student's database. " 
+                    f"The student may have been quarantined during their assignment upload (e.g. missing required field), " 
+                    f"or the tutor assignments file has not been uploaded yet. Upload or fix the relevant assignment first, " 
+                    f"then re-upload this file.",
+                    "raw_data": raw_data,
+                })
+                continue
+            else:
+                # if the student name is blank, derive it dynamically 
+                cur.execute("""SELECT student_id FROM assignments WHERE source_id = %s""", (resolved_assignment_id,))
+                student_id = cur.fetchone()[0]
+
         cur.execute ("""
         INSERT INTO invoices (source_id, upload_id, assignment_id, student_id, invoice_date, amount, payment_status, payment_date, notes)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (assignment_id, invoice_date, payment_status) DO NOTHING

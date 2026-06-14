@@ -291,7 +291,7 @@ def validate_lesson_logs(df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
 
 # Clean and validate invoice_export_q1.xlsx rows.
 # Required: invoice id, assignment id, student_name, invoice date, amount, payment status
-# Optional: payment date, notes
+# Optional: student name, payment date, notes
 
 # Edge cases:
 # - 'SGD ' prefix on amount values — stripped by parse_numeric
@@ -334,7 +334,6 @@ def validate_invoices (df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
         for field, val in [
             ("invoice id", invoice_id),
             ("assignment id", assignment_id),
-            ("student name", student_name),
         ]:
             if val is None:
                 row_reasons.append(_quarantine_entry(
