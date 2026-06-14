@@ -58,6 +58,11 @@ Before you begin, make sure you have the following installed:
 
 ---
 
+## Video Demo 
+Part 1 - https://drive.google.com/file/d/1oa7cb6m4YdBLefrZfM2uvDnO0t0Wq0st/view?usp=sharing
+
+Part 2 (Logs File) - https://drive.google.com/file/d/1FL8k3lQ8uq0NwXMGK9U8clO57Ceb040f/view?usp=sharing
+
 ## Running the application
 You have two options - use the live deployed link or run it locally
 
